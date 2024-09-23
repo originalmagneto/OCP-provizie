@@ -124,7 +124,6 @@ function renderInvoiceList() {
   tbody.innerHTML = "";
   invoices.forEach((invoice) => {
     const tr = document.createElement("tr");
-    tr.setAttribute("data-id", invoice.id);
     tr.style.textDecoration = invoice.paid ? "line-through" : "none";
     const isEditable = invoice.createdBy === currentUser;
     tr.innerHTML = `
@@ -373,6 +372,7 @@ async function updatePaidStatus(id, paid) {
     console.error(`Invoice with id ${id} not found`);
     return;
   }
+
   try {
     const response = await fetch(`http://localhost:3000/update-invoice/${id}`, {
       method: "PUT",
@@ -381,14 +381,16 @@ async function updatePaidStatus(id, paid) {
       },
       body: JSON.stringify({ ...invoice, paid }),
     });
+
     if (!response.ok) {
       throw new Error("Failed to update invoice");
     }
+
     invoice.paid = paid;
     renderInvoiceList();
     renderSummaryTables();
   } catch (error) {
-    console.error("Error updating invoice paid status:", error);
+    console.error("Error updating invoice:", error);
     alert("Failed to update invoice paid status. Please try again.");
   }
 }
@@ -433,31 +435,17 @@ async function init() {
   await fetchClientNames();
 }
 
-// Add event listener for DOMContentLoaded
-document.addEventListener("DOMContentLoaded", function () {
-  if (!currentUser) {
-    window.location.href = "login.html";
-  } else {
-    init();
-  }
-});
-
-// Add logout functionality
-document.getElementById("logoutBtn").addEventListener("click", function () {
-  localStorage.removeItem("currentUser");
-  window.location.href = "login.html";
-});
-
 // Password change functionality
-document
-  .getElementById("changePasswordBtn")
-  .addEventListener("click", function () {
+const changePasswordBtn = document.getElementById("changePasswordBtn");
+if (changePasswordBtn) {
+  changePasswordBtn.addEventListener("click", function () {
     $("#changePasswordModal").modal("show");
   });
+}
 
-document
-  .getElementById("changePasswordForm")
-  .addEventListener("submit", async function (e) {
+const changePasswordForm = document.getElementById("changePasswordForm");
+if (changePasswordForm) {
+  changePasswordForm.addEventListener("submit", async function (e) {
     e.preventDefault();
     const currentPassword = document.getElementById("currentPassword").value;
     const newPassword = document.getElementById("newPassword").value;
@@ -495,3 +483,22 @@ document
       alert("An error occurred while changing the password");
     }
   });
+}
+
+// Add event listener for DOMContentLoaded
+document.addEventListener("DOMContentLoaded", function () {
+  if (!currentUser) {
+    window.location.href = "login.html";
+  } else {
+    init();
+  }
+});
+
+// Add logout functionality
+const logoutBtn = document.getElementById("logoutBtn");
+if (logoutBtn) {
+  logoutBtn.addEventListener("click", function () {
+    localStorage.removeItem("currentUser");
+    window.location.href = "login.html";
+  });
+}
