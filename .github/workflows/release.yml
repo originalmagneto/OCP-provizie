@@ -1,0 +1,23 @@
+name: Automated Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: Set up Git
+      run: |
+        git config user.name github-actions
+        git config user.email github-actions@github.com
+    - name: Run release script
+      run: |
+        chmod +x ./release.sh
+        ./release.sh
