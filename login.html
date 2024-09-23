@@ -1,140 +1,235 @@
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const loginForm = document.getElementById("loginForm");
-        const passwordManagementForm = document.getElementById(
-            "passwordManagementForm",
-        );
-        const passwordResetForm = document.getElementById("passwordResetForm");
-        const errorMessageElement = document.getElementById("errorMessage");
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Login - Invoice Earnings Calculator</title>
 
-        if (loginForm) {
-            loginForm.addEventListener("submit", handleLogin);
-        }
+        <link
+            href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap"
+            rel="stylesheet"
+        />
+        <style>
+            body,
+            html {
+                height: 100%;
+                margin: 0;
+                font-family: "Poppins", sans-serif;
+            }
+            body {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            }
+            .login-container {
+                background: white;
+                padding: 40px;
+                border-radius: 10px;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+                width: 100%;
+                max-width: 400px;
+            }
+            h1 {
+                color: #333;
+                text-align: center;
+                margin-bottom: 30px;
+            }
+            .form-group {
+                margin-bottom: 20px;
+            }
+            label {
+                display: block;
+                margin-bottom: 5px;
+                color: #666;
+            }
+            select,
+            input[type="password"] {
+                width: 100%;
+                padding: 10px;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+                font-size: 16px;
+            }
+            button {
+                width: 100%;
+                padding: 12px;
+                background-color: #667eea;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                font-size: 18px;
+                cursor: pointer;
+                transition: background-color 0.3s ease;
+            }
+            button:hover {
+                background-color: #5a6fe0;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="login-container">
+            <h1>Invoice Earnings Calculator</h1>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="referrer">Referrer</label>
+                    <select id="referrer" required>
+                        <option value="">Choose...</option>
+                        <option value="AdvokatiCHZ">AdvokatiCHZ</option>
+                        <option value="MKMs">MKMs</option>
+                        <option value="Contax">Contax</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" required />
+                </div>
+                <button type="submit">Sign In</button>
+            </form>
+        </div>
 
-        if (passwordManagementForm) {
-            passwordManagementForm.addEventListener(
-                "submit",
-                handlePasswordChange,
-            );
-        }
+        <div id="passwordChangeContainer" style="display: none">
+            <h2>Change Password</h2>
+            <form id="passwordChangeForm">
+                <div class="form-group">
+                    <label for="newPassword">New Password</label>
+                    <input type="password" id="newPassword" required />
+                </div>
+                <div class="form-group">
+                    <label for="confirmPassword">Confirm New Password</label>
+                    <input type="password" id="confirmPassword" required />
+                </div>
+                <button type="submit">Change Password</button>
+            </form>
+        </div>
 
-        if (passwordResetForm) {
-            passwordResetForm.addEventListener("submit", handlePasswordReset);
-        }
+        <script>
+            document
+                .getElementById("loginForm")
+                .addEventListener("submit", async function (e) {
+                    e.preventDefault();
+                    const username = document.getElementById("referrer").value;
+                    const password = document.getElementById("password").value;
 
-        async function handleLogin(e) {
-            e.preventDefault();
-            const username = document.getElementById("referrer").value;
-            const password = document.getElementById("password").value;
+                    console.log("Login attempt for user:", username);
 
-            try {
-                const response = await fetch("http://localhost:3000/login", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({ username, password }),
+                    try {
+                        const response = await fetch(
+                            "http://localhost:3000/login",
+                            {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json",
+                                },
+                                body: JSON.stringify({ username, password }),
+                            },
+                        );
+
+                        const data = await response.json();
+                        console.log("Login response:", data);
+
+                        if (data.success) {
+                            localStorage.setItem("currentUser", username);
+                            console.log("User logged in successfully");
+                            if (data.requirePasswordChange) {
+                                console.log("Password change required");
+                                document.getElementById(
+                                    "loginForm",
+                                ).style.display = "none";
+                                document.getElementById(
+                                    "passwordChangeContainer",
+                                ).style.display = "block";
+                            } else {
+                                console.log("Redirecting to index.html");
+                                window.location.href = "index.html";
+                            }
+                        } else {
+                            console.log("Login failed:", data.message);
+                            alert(
+                                data.message || "Invalid username or password",
+                            );
+                        }
+                    } catch (error) {
+                        console.error("Login error:", error);
+                        alert("An error occurred during login");
+                    }
                 });
 
-                const data = await response.json();
+            document
+                .getElementById("passwordChangeForm")
+                .addEventListener("submit", async function (e) {
+                    e.preventDefault();
+                    const username = localStorage.getItem("currentUser");
+                    const newPassword =
+                        document.getElementById("newPassword").value;
+                    const confirmPassword =
+                        document.getElementById("confirmPassword").value;
 
-                if (data.success) {
-                    localStorage.setItem("currentUser", username);
-                    window.location.href = "index.html";
-                } else {
-                    showError(data.message || "Login failed");
-                }
-            } catch (error) {
-                console.error("Login error:", error);
-                showError("An error occurred during login");
-            }
-        }
+                    if (newPassword !== confirmPassword) {
+                        alert("New passwords do not match");
+                        return;
+                    }
 
-        async function handlePasswordChange(e) {
-            e.preventDefault();
-            const username = document.getElementById("referrer").value;
-            const newPassword = document.getElementById("newPassword").value;
-            const confirmPassword =
-                document.getElementById("confirmPassword").value;
+                    try {
+                        const response = await fetch(
+                            "http://localhost:3000/change-password",
+                            {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json",
+                                },
+                                body: JSON.stringify({ username, newPassword }),
+                            },
+                        );
 
-            if (newPassword !== confirmPassword) {
-                showError("New passwords do not match");
-                return;
-            }
+                        const data = await response.json();
 
-            try {
-                const response = await fetch(
-                    "http://localhost:3000/change-password",
-                    {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify({ username, newPassword }),
-                    },
-                );
+                        if (data.success) {
+                            alert(
+                                "Password changed successfully. Please log in again.",
+                            );
+                            logout();
+                        } else {
+                            alert("Failed to change password");
+                        }
+                    } catch (error) {
+                        console.error("Password change error:", error);
+                        alert("An error occurred while changing the password");
+                    }
+                });
 
-                const data = await response.json();
-
-                if (data.success) {
-                    showSuccess("Password changed successfully");
-                } else {
-                    showError(data.message || "Failed to change password");
-                }
-            } catch (error) {
-                console.error("Password change error:", error);
-                showError("An error occurred while changing the password");
-            }
-        }
-
-        async function handlePasswordReset(e) {
-            e.preventDefault();
-            const username = document.getElementById("resetReferrer").value;
-            const newPassword = document.getElementById("resetPassword").value;
-            const confirmPassword = document.getElementById(
-                "confirmResetPassword",
-            ).value;
-
-            if (newPassword !== confirmPassword) {
-                showError("New passwords do not match");
-                return;
+            function logout() {
+                localStorage.removeItem("currentUser");
+                document.getElementById(
+                    "passwordChangeContainer",
+                ).style.display = "none";
+                document.getElementById("loginForm").style.display = "block";
+                document.getElementById("loginForm").reset();
             }
 
-            try {
-                const response = await fetch(
-                    "http://localhost:3000/reset-password",
-                    {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify({ username, newPassword }),
-                    },
-                );
-
-                const data = await response.json();
-
-                if (data.success) {
-                    showSuccess("Password reset successfully");
-                } else {
-                    showError(data.message || "Failed to reset password");
-                }
-            } catch (error) {
-                console.error("Password reset error:", error);
-                showError("An error occurred while resetting the password");
+            function showError(message) {
+                const errorElement = document.createElement("div");
+                errorElement.className = "error-message";
+                errorElement.textContent = message;
+                errorElement.style.color = "red";
+                errorElement.style.marginTop = "10px";
+                document
+                    .querySelector(".login-container")
+                    .appendChild(errorElement);
+                setTimeout(() => errorElement.remove(), 5000);
             }
-        }
 
-        function showError(message) {
-            errorMessageElement.textContent = message;
-            errorMessageElement.style.display = "block";
-            errorMessageElement.style.color = "red";
-        }
-
-        function showSuccess(message) {
-            errorMessageElement.textContent = message;
-            errorMessageElement.style.display = "block";
-            errorMessageElement.style.color = "green";
-        }
-    });
-</script>
+            function showSuccess(message) {
+                const successElement = document.createElement("div");
+                successElement.className = "success-message";
+                successElement.textContent = message;
+                successElement.style.color = "green";
+                successElement.style.marginTop = "10px";
+                document
+                    .querySelector(".login-container")
+                    .appendChild(successElement);
+                setTimeout(() => successElement.remove(), 5000);
+            }
+        </script>
+    </body>
+</html>
