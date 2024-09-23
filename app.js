@@ -447,3 +447,51 @@ document.getElementById("logoutBtn").addEventListener("click", function () {
   localStorage.removeItem("currentUser");
   window.location.href = "login.html";
 });
+
+// Password change functionality
+document
+  .getElementById("changePasswordBtn")
+  .addEventListener("click", function () {
+    $("#changePasswordModal").modal("show");
+  });
+
+document
+  .getElementById("changePasswordForm")
+  .addEventListener("submit", async function (e) {
+    e.preventDefault();
+    const currentPassword = document.getElementById("currentPassword").value;
+    const newPassword = document.getElementById("newPassword").value;
+    const confirmNewPassword =
+      document.getElementById("confirmNewPassword").value;
+
+    if (newPassword !== confirmNewPassword) {
+      alert("New passwords do not match");
+      return;
+    }
+
+    try {
+      const response = await fetch("http://localhost:3000/change-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: currentUser,
+          currentPassword,
+          newPassword,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert("Password changed successfully");
+        $("#changePasswordModal").modal("hide");
+      } else {
+        alert(data.message || "Failed to change password");
+      }
+    } catch (error) {
+      console.error("Password change error:", error);
+      alert("An error occurred while changing the password");
+    }
+  });

@@ -278,4 +278,44 @@ app.get("/get-client-names", (req, res) => {
   });
 });
 
+app.post("/change-password", async (req, res) => {
+  const { username, currentPassword, newPassword } = req.body;
+
+  db.get(
+    "SELECT passwordHash FROM users WHERE username = ?",
+    [username],
+    async (err, row) => {
+      if (err) {
+        return res
+          .status(500)
+          .json({ success: false, message: "Database error" });
+      }
+      if (!row) {
+        return res
+          .status(400)
+          .json({ success: false, message: "User not found" });
+      }
+      const match = await bcrypt.compare(currentPassword, row.passwordHash);
+      if (!match) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Current password is incorrect" });
+      }
+      const newPasswordHash = await bcrypt.hash(newPassword, 10);
+      db.run(
+        "UPDATE users SET passwordHash = ? WHERE username = ?",
+        [newPasswordHash, username],
+        (err) => {
+          if (err) {
+            return res
+              .status(500)
+              .json({ success: false, message: "Error updating password" });
+          }
+          res.json({ success: true, message: "Password updated successfully" });
+        },
+      );
+    },
+  );
+});
+
 app.listen(3000, () => console.log("Server running on port 3000"));
