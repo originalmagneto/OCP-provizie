@@ -75,6 +75,24 @@ function initializeDatabase() {
         }
       },
     );
+
+    // Create quarterly_bonus_status table if it doesn't exist
+    db.run(
+      `CREATE TABLE IF NOT EXISTS quarterly_bonus_status (
+            referrer TEXT,
+            year INTEGER,
+            quarter INTEGER,
+            paid INTEGER,
+            PRIMARY KEY (referrer, year, quarter)
+        )`,
+      (err) => {
+        if (err) {
+          console.error("Error creating quarterly_bonus_status table:", err);
+        } else {
+          console.log("Quarterly bonus status table created or already exists");
+        }
+      },
+    );
   });
 }
 
@@ -189,11 +207,7 @@ app.get("/get-invoices", (req, res) => {
   db.all("SELECT * FROM invoices", (err, rows) => {
     if (err) {
       console.error("Error fetching invoices:", err);
-      return res.status(500).json({
-        error: "Internal server error",
-        message: err.message,
-        code: err.code,
-      });
+      return res.status(500).json({ error: "Internal server error" });
     }
     res.json(rows);
   });
@@ -274,7 +288,7 @@ app.put("/update-invoice/:id", (req, res) => {
     bonusPercentage,
     createdBy,
   } = req.body;
-  const currentUser = req.body.currentUser; // Add this line to get the current user from the request
+  const currentUser = req.body.currentUser;
 
   // Check if the user is authorized to update this invoice
   db.get("SELECT referrer FROM invoices WHERE id = ?", [id], (err, row) => {
@@ -355,14 +369,46 @@ app.delete("/delete-invoice/:id", (req, res) => {
           .json({ success: false, message: "Failed to delete invoice" });
       }
       if (this.changes === 0) {
-        return res.status(404).json({
-          success: false,
-          message: "Invoice not found or not authorized to delete",
-        });
+        return res
+          .status(404)
+          .json({
+            success: false,
+            message: "Invoice not found or not authorized to delete",
+          });
       }
       res.json({ success: true });
     },
   );
+});
+
+app.get("/quarterly-bonus-status", (req, res) => {
+  db.all("SELECT * FROM quarterly_bonus_status", [], (err, rows) => {
+    if (err) {
+      console.error("Error fetching quarterly bonus status:", err);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+    const status = {};
+    rows.forEach((row) => {
+      if (!status[row.referrer]) {
+        status[row.referrer] = {};
+      }
+      status[row.referrer][`${row.year}-${row.quarter}`] = row.paid === 1;
+    });
+    res.json(status);
+  });
+});
+
+app.post("/update-quarterly-bonus-status", (req, res) => {
+  const { referrer, year, quarter, isPaid } = req.body;
+  const query = `INSERT OR REPLACE INTO quarterly_bonus_status (referrer, year, quarter, paid)
+                   VALUES (?, ?, ?, ?)`;
+  db.run(query, [referrer, year, quarter, isPaid ? 1 : 0], function (err) {
+    if (err) {
+      console.error("Error updating quarterly bonus status:", err);
+      return res.status(500).json({ error: "Failed to update status" });
+    }
+    res.json({ success: true });
+  });
 });
 
 const PORT = 3000;

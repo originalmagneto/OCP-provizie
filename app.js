@@ -45,6 +45,24 @@ async function fetchClientNames() {
   }
 }
 
+// Function to fetch quarterly bonus paid status
+async function fetchQuarterlyBonusPaidStatus() {
+  try {
+    const response = await fetch(
+      `http://localhost:3000/quarterly-bonus-status`,
+    );
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    quarterlyBonusPaidStatus = await response.json();
+  } catch (error) {
+    console.error("Error fetching quarterly bonus paid status:", error);
+    alert(
+      "Failed to fetch quarterly bonus paid status. Please try again later.",
+    );
+  }
+}
+
 // Function to handle form submission
 async function handleFormSubmit(event) {
   event.preventDefault();
@@ -252,14 +270,15 @@ function createReferrerTable(referrer) {
                                 ? "text-decoration: line-through;"
                                 : "color: red;"
                             }">€${quarterlyBonus.toFixed(2)}</span>
-                            <input type="checkbox" ${isPaid ? "checked" : ""}
-                                   onchange="updateQuarterlyBonusPaidStatus('${referrer}', ${year}, ${quarter}, this.checked)"
-                                   ${isEditable ? "" : "disabled"}>
                             ${
-                              isPaid
-                                ? '<span class="paid-indicator" style="font-weight: bold; color: green;">PAID</span>'
+                              isEditable
+                                ? `
+                              <input type="checkbox" ${isPaid ? "checked" : ""}
+                                     onchange="updateQuarterlyBonusPaidStatus('${referrer}', ${year}, ${quarter}, this.checked)">
+                            `
                                 : ""
                             }
+                            <span class="paid-indicator" style="font-weight: bold; color: green; ${isPaid ? "" : "display: none;"}">PAID</span>
                         </td>
                     `;
                   })
@@ -373,25 +392,52 @@ async function deleteInvoice(id) {
 
 // Function to get quarterly bonus paid status
 function getQuarterlyBonusPaidStatus(referrer, year, quarter) {
-  const key = `${referrer}-${year}-${quarter}`;
-  return quarterlyBonusPaidStatus[key] || false;
+  return (
+    (quarterlyBonusPaidStatus[referrer] &&
+      quarterlyBonusPaidStatus[referrer][`${year}-${quarter}`]) ||
+    false
+  );
 }
 
 // Function to update quarterly bonus paid status
-function updateQuarterlyBonusPaidStatus(referrer, year, quarter, isPaid) {
+async function updateQuarterlyBonusPaidStatus(referrer, year, quarter, isPaid) {
   if (referrer !== currentUser) {
     console.error("Not authorized to update this status");
     alert("You are not authorized to change this status.");
     return;
   }
 
-  const key = `${referrer}-${year}-${quarter}`;
-  quarterlyBonusPaidStatus[key] = isPaid;
-  renderSummaryTables();
+  try {
+    const response = await fetch(
+      "http://localhost:3000/update-quarterly-bonus-status",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ referrer, year, quarter, isPaid }),
+      },
+    );
 
-  // Here you might want to add an API call to update this status on the server
-  // For example:
-  // updateQuarterlyBonusStatusOnServer(referrer, year, quarter, isPaid);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (data.success) {
+      if (!quarterlyBonusPaidStatus[referrer]) {
+        quarterlyBonusPaidStatus[referrer] = {};
+      }
+      quarterlyBonusPaidStatus[referrer][`${year}-${quarter}`] = isPaid;
+      renderSummaryTables();
+    } else {
+      throw new Error("Failed to update quarterly bonus status");
+    }
+  } catch (error) {
+    console.error("Error updating quarterly bonus paid status:", error);
+    alert(`Failed to update quarterly bonus paid status: ${error.message}`);
+  }
 }
 
 // Function to update paid status of an invoice
@@ -465,8 +511,17 @@ async function init() {
   if (yearInput) yearInput.value = currentDate.getFullYear();
   if (monthInput) monthInput.value = currentDate.getMonth() + 1; // JavaScript months are 0-indexed
 
-  await fetchInvoices();
-  await fetchClientNames();
+  try {
+    await Promise.all([
+      fetchInvoices(),
+      fetchClientNames(),
+      fetchQuarterlyBonusPaidStatus(),
+    ]);
+    renderSummaryTables();
+  } catch (error) {
+    console.error("Error initializing application:", error);
+    alert("Failed to initialize application. Please try refreshing the page.");
+  }
 }
 
 // Add event listener for DOMContentLoaded
