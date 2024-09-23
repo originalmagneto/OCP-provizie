@@ -9,7 +9,10 @@ async function fetchInvoices() {
   try {
     const response = await fetch("http://localhost:3000/get-invoices");
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorData = await response.json();
+      throw new Error(
+        `HTTP error! status: ${response.status}, message: ${errorData.message}, code: ${errorData.code}`,
+      );
     }
     const data = await response.json();
     invoices = data.map((invoice) => ({
@@ -20,7 +23,7 @@ async function fetchInvoices() {
     renderSummaryTables();
   } catch (error) {
     console.error("Error fetching invoices:", error);
-    alert("Failed to fetch invoices. Please try again later.");
+    alert(`Failed to fetch invoices. ${error.message}`);
   }
 }
 
@@ -29,13 +32,16 @@ async function fetchClientNames() {
   try {
     const response = await fetch("http://localhost:3000/get-client-names");
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorData = await response.json();
+      throw new Error(
+        `HTTP error! status: ${response.status}, message: ${errorData.message}, code: ${errorData.code}`,
+      );
     }
     clientNames = await response.json();
     updateClientNameSuggestions();
   } catch (error) {
     console.error("Error fetching client names:", error);
-    alert("Failed to fetch client names. Please try again later.");
+    alert(`Failed to fetch client names. ${error.message}`);
   }
 }
 
@@ -238,6 +244,7 @@ function createReferrerTable(referrer) {
                       year,
                       quarter,
                     );
+                    const isEditable = referrer === currentUser;
                     return `
                         <td>
                             <span style="${
@@ -245,9 +252,9 @@ function createReferrerTable(referrer) {
                                 ? "text-decoration: line-through;"
                                 : "color: red;"
                             }">€${quarterlyBonus.toFixed(2)}</span>
-                            <input type="checkbox" ${
-                              isPaid ? "checked" : ""
-                            } onchange="updateQuarterlyBonusPaidStatus('${referrer}', ${year}, ${quarter}, this.checked)">
+                            <input type="checkbox" ${isPaid ? "checked" : ""}
+                                   onchange="updateQuarterlyBonusPaidStatus('${referrer}', ${year}, ${quarter}, this.checked)"
+                                   ${isEditable ? "" : "disabled"}>
                             ${
                               isPaid
                                 ? '<span class="paid-indicator" style="font-weight: bold; color: green;">PAID</span>'
@@ -322,11 +329,12 @@ async function updateInvoice(event, id) {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(updatedInvoice),
+      body: JSON.stringify({ ...updatedInvoice, currentUser }),
     });
 
     if (!response.ok) {
-      throw new Error("Failed to update invoice");
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to update invoice");
     }
 
     await fetchInvoices();
@@ -336,7 +344,7 @@ async function updateInvoice(event, id) {
     form.reset();
   } catch (error) {
     console.error("Error updating invoice:", error);
-    alert("Failed to update invoice. Please try again.");
+    alert(`Failed to update invoice: ${error.message}`);
   }
 }
 
@@ -352,13 +360,14 @@ async function deleteInvoice(id) {
     );
 
     if (!response.ok) {
-      throw new Error("Failed to delete invoice");
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to delete invoice");
     }
 
     await fetchInvoices();
   } catch (error) {
     console.error("Error deleting invoice:", error);
-    alert("Failed to delete invoice. Please try again.");
+    alert(`Failed to delete invoice: ${error.message}`);
   }
 }
 
@@ -370,9 +379,19 @@ function getQuarterlyBonusPaidStatus(referrer, year, quarter) {
 
 // Function to update quarterly bonus paid status
 function updateQuarterlyBonusPaidStatus(referrer, year, quarter, isPaid) {
+  if (referrer !== currentUser) {
+    console.error("Not authorized to update this status");
+    alert("You are not authorized to change this status.");
+    return;
+  }
+
   const key = `${referrer}-${year}-${quarter}`;
   quarterlyBonusPaidStatus[key] = isPaid;
   renderSummaryTables();
+
+  // Here you might want to add an API call to update this status on the server
+  // For example:
+  // updateQuarterlyBonusStatusOnServer(referrer, year, quarter, isPaid);
 }
 
 // Function to update paid status of an invoice
@@ -384,11 +403,12 @@ async function updatePaidStatus(id, paid) {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ paid }),
+      body: JSON.stringify({ paid, currentUser }),
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to update invoice");
     }
 
     const data = await response.json();
@@ -405,7 +425,7 @@ async function updatePaidStatus(id, paid) {
     }
   } catch (error) {
     console.error("Error updating invoice paid status:", error);
-    alert("Failed to update invoice paid status. Please try again.");
+    alert(`Failed to update invoice paid status: ${error.message}`);
   }
 }
 

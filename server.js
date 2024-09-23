@@ -274,44 +274,69 @@ app.put("/update-invoice/:id", (req, res) => {
     bonusPercentage,
     createdBy,
   } = req.body;
-  let query, params;
+  const currentUser = req.body.currentUser; // Add this line to get the current user from the request
 
-  if (paid !== undefined) {
-    // If only updating paid status
-    query = "UPDATE invoices SET paid = ? WHERE id = ?";
-    params = [paid ? 1 : 0, id];
-  } else {
-    // If updating all invoice details
-    query = `UPDATE invoices SET
-                 year = ?, month = ?, clientName = ?, amount = ?,
-                 referrer = ?, bonusPercentage = ?, paid = ?, createdBy = ?
-                 WHERE id = ?`;
-    params = [
-      year,
-      month,
-      clientName,
-      amount,
-      referrer,
-      bonusPercentage,
-      paid ? 1 : 0,
-      createdBy,
-      id,
-    ];
-  }
-
-  db.run(query, params, function (err) {
+  // Check if the user is authorized to update this invoice
+  db.get("SELECT referrer FROM invoices WHERE id = ?", [id], (err, row) => {
     if (err) {
-      console.error("Error updating invoice:", err);
+      console.error("Error fetching invoice:", err);
       return res
         .status(500)
-        .json({ success: false, message: "Failed to update invoice" });
+        .json({ success: false, message: "Failed to fetch invoice" });
     }
-    if (this.changes === 0) {
+    if (!row) {
       return res
         .status(404)
         .json({ success: false, message: "Invoice not found" });
     }
-    res.json({ success: true });
+    if (row.referrer !== currentUser) {
+      return res
+        .status(403)
+        .json({
+          success: false,
+          message: "Not authorized to update this invoice",
+        });
+    }
+
+    // If authorized, proceed with the update
+    let query, params;
+    if (paid !== undefined) {
+      // If only updating paid status
+      query = "UPDATE invoices SET paid = ? WHERE id = ?";
+      params = [paid ? 1 : 0, id];
+    } else {
+      // If updating all invoice details
+      query = `UPDATE invoices SET
+                     year = ?, month = ?, clientName = ?, amount = ?,
+                     referrer = ?, bonusPercentage = ?, paid = ?, createdBy = ?
+                     WHERE id = ?`;
+      params = [
+        year,
+        month,
+        clientName,
+        amount,
+        referrer,
+        bonusPercentage,
+        paid ? 1 : 0,
+        createdBy,
+        id,
+      ];
+    }
+
+    db.run(query, params, function (err) {
+      if (err) {
+        console.error("Error updating invoice:", err);
+        return res
+          .status(500)
+          .json({ success: false, message: "Failed to update invoice" });
+      }
+      if (this.changes === 0) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Invoice not found" });
+      }
+      res.json({ success: true });
+    });
   });
 });
 
