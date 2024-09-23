@@ -11,7 +11,7 @@ async function fetchInvoices() {
     const data = await response.json();
     invoices = data.map((invoice) => ({
       ...invoice,
-      paid: Boolean(invoice.paid), // Convert to boolean
+      paid: Boolean(invoice.paid),
     }));
     renderInvoiceList();
     renderSummaryTables();
@@ -127,28 +127,28 @@ function renderInvoiceList() {
     tr.style.textDecoration = invoice.paid ? "line-through" : "none";
     const isEditable = invoice.createdBy === currentUser;
     tr.innerHTML = `
-            <td>${invoice.year}</td>
-            <td>${invoice.month}</td>
-            <td>${invoice.clientName}</td>
-            <td>€${invoice.amount.toFixed(2)}</td>
-            <td>${invoice.referrer}</td>
-            <td>${(invoice.bonusPercentage * 100).toFixed(0)}%</td>
-            <td>
-                <input type="checkbox" ${invoice.paid ? "checked" : ""}
-                       onchange="updatePaidStatus(${invoice.id}, this.checked)"
-                       ${isEditable ? "" : "disabled"}>
-            </td>
-            <td>
-                ${
-                  isEditable
-                    ? `
-                    <button onclick="editInvoice(${invoice.id})">Edit</button>
-                    <button onclick="deleteInvoice(${invoice.id})">Delete</button>
-                `
-                    : ""
-                }
-            </td>
-        `;
+      <td>${invoice.year}</td>
+      <td>${invoice.month}</td>
+      <td>${invoice.clientName}</td>
+      <td>€${invoice.amount.toFixed(2)}</td>
+      <td>${invoice.referrer}</td>
+      <td>${(invoice.bonusPercentage * 100).toFixed(0)}%</td>
+      <td>
+        <input type="checkbox" ${invoice.paid ? "checked" : ""}
+               onchange="updatePaidStatus(${invoice.id}, this.checked)"
+               ${isEditable ? "" : "disabled"}>
+      </td>
+      <td>
+        ${
+          isEditable
+            ? `
+            <button onclick="editInvoice(${invoice.id})">Edit</button>
+            <button onclick="deleteInvoice(${invoice.id})">Delete</button>
+          `
+            : ""
+        }
+      </td>
+    `;
     tbody.appendChild(tr);
   });
   console.log("Invoice list rendered successfully");
@@ -196,58 +196,52 @@ function createReferrerTable(referrer) {
           : "inherit";
 
   let tableHTML = `
-        <thead>
-            <tr>
-                <th colspan="5"><h3 style="color: ${referrerColor};">${referrer}</h3></th>
-            </tr>
-            <tr>
-                <th>Year</th>
-                <th>Q1</th>
-                <th>Q2</th>
-                <th>Q3</th>
-                <th>Q4</th>
-            </tr>
-        </thead>
-        <tbody>
-    `;
+    <thead>
+      <tr>
+        <th colspan="5"><h3 style="color: ${referrerColor};">${referrer}</h3></th>
+      </tr>
+      <tr>
+        <th>Year</th>
+        <th>Q1</th>
+        <th>Q2</th>
+        <th>Q3</th>
+        <th>Q4</th>
+      </tr>
+    </thead>
+    <tbody>
+  `;
 
   years.forEach((year) => {
     tableHTML += `
-            <tr>
-                <td>${year}</td>
-                ${[1, 2, 3, 4]
-                  .map((quarter) => {
-                    const quarterlyBonus = calculateQuarterlyBonus(
-                      referrerInvoices,
-                      year,
-                      quarter,
-                    );
-                    const isPaid = getQuarterlyBonusPaidStatus(
-                      referrer,
-                      year,
-                      quarter,
-                    );
-                    return `
-                        <td>
-                            <span style="${
-                              isPaid
-                                ? "text-decoration: line-through;"
-                                : "color: red;"
-                            }">€${quarterlyBonus.toFixed(2)}</span>
-                            <input type="checkbox" ${
-                              isPaid ? "checked" : ""
-                            } onchange="updateQuarterlyBonusPaidStatus('${referrer}', ${year}, ${quarter}, this.checked)">
-                            ${
-                              isPaid
-                                ? '<span class="paid-indicator" style="font-weight: bold; color: green;">PAID</span>'
-                                : ""
-                            }
-                        </td>
-                    `;
-                  })
-                  .join("")}
-            </tr>
-        `;
+      <tr>
+        <td>${year}</td>
+        ${[1, 2, 3, 4]
+          .map((quarter) => {
+            const quarterlyBonus = calculateQuarterlyBonus(
+              referrerInvoices,
+              year,
+              quarter,
+            );
+            const isPaid = getQuarterlyBonusPaidStatus(referrer, year, quarter);
+            return `
+              <td>
+                <span style="${
+                  isPaid ? "text-decoration: line-through;" : "color: red;"
+                }">€${quarterlyBonus.toFixed(2)}</span>
+                <input type="checkbox" ${
+                  isPaid ? "checked" : ""
+                } onchange="updateQuarterlyBonusPaidStatus('${referrer}', ${year}, ${quarter}, this.checked)">
+                ${
+                  isPaid
+                    ? '<span class="paid-indicator" style="font-weight: bold; color: green;">PAID</span>'
+                    : ""
+                }
+              </td>
+            `;
+          })
+          .join("")}
+      </tr>
+    `;
   });
 
   tableHTML += "</tbody>";
@@ -273,11 +267,11 @@ function calculateQuarterlyBonus(invoices, year, quarter) {
     );
 }
 
+// Function to edit invoice
 async function editInvoice(id) {
   const invoice = invoices.find((inv) => inv.id === id);
   if (!invoice) return;
 
-  // Populate form with invoice data for editing
   document.getElementById("year").value = invoice.year;
   document.getElementById("month").value = invoice.month;
   document.getElementById("client-name").value = invoice.clientName;
@@ -285,11 +279,11 @@ async function editInvoice(id) {
   document.getElementById("referral-bonus").value = invoice.bonusPercentage;
   document.getElementById("paid-status").checked = invoice.paid;
 
-  // Change form submission to update instead of create
   const form = document.getElementById("invoice-form");
   form.onsubmit = (e) => updateInvoice(e, id);
 }
 
+// Function to update invoice
 async function updateInvoice(event, id) {
   event.preventDefault();
   const updatedInvoice = {
@@ -319,7 +313,6 @@ async function updateInvoice(event, id) {
     }
 
     await fetchInvoices();
-    // Reset form to create mode
     const form = document.getElementById("invoice-form");
     form.onsubmit = handleFormSubmit;
     form.reset();
@@ -329,6 +322,7 @@ async function updateInvoice(event, id) {
   }
 }
 
+// Function to delete invoice
 async function deleteInvoice(id) {
   if (!confirm("Are you sure you want to delete this invoice?")) return;
 
@@ -443,49 +437,9 @@ if (changePasswordBtn) {
   });
 }
 
-const changePasswordForm = document.getElementById('changePasswordForm');
+const changePasswordForm = document.getElementById("changePasswordForm");
 if (changePasswordForm) {
-  changePasswordForm.addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const currentPassword = document.getElementById('currentPassword').value;
-    const newPassword = document.getElementById('newPassword').value;
-    const confirmNewPassword = document.getElementById('confirmNewPassword').value;
-
-    if (newPassword !== confirmNewPassword) {
-      alert('New passwords do not match');
-      return;
-    }
-
-    try {
-      const response = await fetch('http://localhost:3000/change-password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: currentUser,
-          currentPassword,
-          newPassword
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        alert('Password changed successfully. You will be logged out.');
-        $('#changePasswordModal').modal('hide');
-        // Logout the user
-        localStorage.removeItem("currentUser");
-        window.location.href = "login.html";
-      } else {
-        alert(data.message || 'Failed to change password');
-      }
-    } catch (error) {
-      console.error('Password change error:', error);
-      alert('An error occurred while changing the password');
-    }
-  });
-}
+  changePasswordForm.addEventListener("submit", async function (e) {
     e.preventDefault();
     const currentPassword = document.getElementById("currentPassword").value;
     const newPassword = document.getElementById("newPassword").value;
@@ -513,8 +467,11 @@ if (changePasswordForm) {
       const data = await response.json();
 
       if (data.success) {
-        alert("Password changed successfully");
+        alert("Password changed successfully. You will be logged out.");
         $("#changePasswordModal").modal("hide");
+        // Logout the user
+        localStorage.removeItem("currentUser");
+        window.location.href = "login.html";
       } else {
         alert(data.message || "Failed to change password");
       }
