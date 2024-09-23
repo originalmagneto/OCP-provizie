@@ -31,8 +31,7 @@ git pull origin main || { echo "Failed to pull latest changes"; exit 1; }
 
 # Generate changelog
 echo "Generating changelog..."
-echo "# Changelog for $VERSION" > CHANGELOG.md
-git log $(git describe --tags --abbrev=0)..HEAD --pretty=format:"* %s" >> CHANGELOG.md
+CHANGELOG=$(git log $(git describe --tags --abbrev=0)..HEAD --pretty=format:"* %s")
 
 # Add all changes
 git add .
@@ -45,5 +44,8 @@ git tag -a $VERSION -m "Release $VERSION"
 
 # Push changes and tags to GitHub
 git push origin main && git push origin $VERSION
+
+# Create GitHub release
+gh release create $VERSION --title "Release $VERSION" --notes "$CHANGELOG"
 
 echo "Release $VERSION has been created and pushed to GitHub"
