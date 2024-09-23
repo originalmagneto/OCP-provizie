@@ -1,0 +1,54 @@
+body {
+    background-color: #f8f9fa;
+}
+
+#app {
+    background-color: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    padding: 30px;
+}
+
+h1 {
+    color: #007bff;
+}
+
+h2 {
+    color: #343a40;
+    margin-bottom: 20px;
+}
+
+.table {
+    font-size: 0.9rem;
+}
+
+.summary-table {
+    margin-bottom: 30px;
+}
+
+.summary-table h3 {
+    font-size: 1.2rem;
+
+    color: green;
+    font-weight: bold;
+    margin-left: 5px;
+
+    margin-bottom: 10px;
+}
+
+.paid-status {
+    color: #28a745;
+}
+
+.unpaid-status {
+    color: #dc3545;
+}
+
+.paid-bonus {
+    text-decoration: line-through;
+    color: #6c757d;
+}
+
+.bonus-checkbox {
+    margin-right: 5px;
+}
