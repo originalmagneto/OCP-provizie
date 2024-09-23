@@ -9,8 +9,8 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
-// Use a fixed path for the database file
-const dbPath = path.join(__dirname, "database.db");
+// Use a fixed path for the database file in the project directory
+const dbPath = path.join(__dirname, "users.db");
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
     console.error("Error opening database", err);
@@ -22,7 +22,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
 
 function initializeDatabase() {
   db.serialize(() => {
-    // Create users table
+    // Create users table if it doesn't exist
     db.run(
       `CREATE TABLE IF NOT EXISTS users (
             username TEXT PRIMARY KEY,
@@ -34,12 +34,12 @@ function initializeDatabase() {
           console.error("Error creating users table:", err);
         } else {
           console.log("Users table created or already exists");
-          initializeDefaultUsers();
+          checkAndInitializeDefaultUsers();
         }
       },
     );
 
-    // Create invoices table
+    // Create invoices table if it doesn't exist
     db.run(
       `CREATE TABLE IF NOT EXISTS invoices (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -61,7 +61,7 @@ function initializeDatabase() {
       },
     );
 
-    // Create clients table
+    // Create clients table if it doesn't exist
     db.run(
       `CREATE TABLE IF NOT EXISTS clients (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -78,7 +78,7 @@ function initializeDatabase() {
   });
 }
 
-function initializeDefaultUsers() {
+function checkAndInitializeDefaultUsers() {
   const defaultUsers = [
     {
       username: "AdvokatiCHZ",
@@ -89,25 +89,33 @@ function initializeDefaultUsers() {
     { username: "Contax", password: "default123", requirePasswordChange: 1 },
   ];
 
-  defaultUsers.forEach((user) => {
-    bcrypt.hash(user.password, 10, (err, hash) => {
-      if (err) {
-        console.error("Error hashing password:", err);
-      } else {
-        db.run(
-          "INSERT OR REPLACE INTO users (username, password, requirePasswordChange) VALUES (?, ?, ?)",
-          [user.username, hash, user.requirePasswordChange],
-          (err) => {
-            if (err) {
-              console.error(
-                `Error inserting/updating user ${user.username}:`,
-                err,
-              );
-            } else {
-              console.log(`User ${user.username} initialized or updated`);
-            }
-          },
-        );
+  db.all("SELECT username FROM users", [], (err, rows) => {
+    if (err) {
+      console.error("Error checking existing users:", err);
+      return;
+    }
+
+    const existingUsernames = rows.map((row) => row.username);
+
+    defaultUsers.forEach((user) => {
+      if (!existingUsernames.includes(user.username)) {
+        bcrypt.hash(user.password, 10, (err, hash) => {
+          if (err) {
+            console.error("Error hashing password:", err);
+          } else {
+            db.run(
+              "INSERT INTO users (username, password, requirePasswordChange) VALUES (?, ?, ?)",
+              [user.username, hash, user.requirePasswordChange],
+              (err) => {
+                if (err) {
+                  console.error(`Error inserting user ${user.username}:`, err);
+                } else {
+                  console.log(`User ${user.username} initialized`);
+                }
+              },
+            );
+          }
+        });
       }
     });
   });
@@ -181,7 +189,11 @@ app.get("/get-invoices", (req, res) => {
   db.all("SELECT * FROM invoices", (err, rows) => {
     if (err) {
       console.error("Error fetching invoices:", err);
-      return res.status(500).json({ error: "Internal server error" });
+      return res.status(500).json({
+        error: "Internal server error",
+        message: err.message,
+        code: err.code,
+      });
     }
     res.json(rows);
   });
@@ -318,12 +330,10 @@ app.delete("/delete-invoice/:id", (req, res) => {
           .json({ success: false, message: "Failed to delete invoice" });
       }
       if (this.changes === 0) {
-        return res
-          .status(404)
-          .json({
-            success: false,
-            message: "Invoice not found or not authorized to delete",
-          });
+        return res.status(404).json({
+          success: false,
+          message: "Invoice not found or not authorized to delete",
+        });
       }
       res.json({ success: true });
     },
