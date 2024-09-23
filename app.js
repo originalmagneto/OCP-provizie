@@ -8,15 +8,19 @@ const currentUser = localStorage.getItem("currentUser");
 async function fetchInvoices() {
   try {
     const response = await fetch("http://localhost:3000/get-invoices");
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
     const data = await response.json();
     invoices = data.map((invoice) => ({
       ...invoice,
-      paid: Boolean(invoice.paid), // Convert to boolean
+      paid: Boolean(invoice.paid),
     }));
     renderInvoiceList();
     renderSummaryTables();
   } catch (error) {
     console.error("Error fetching invoices:", error);
+    alert("Failed to fetch invoices. Please try again later.");
   }
 }
 
@@ -24,10 +28,14 @@ async function fetchInvoices() {
 async function fetchClientNames() {
   try {
     const response = await fetch("http://localhost:3000/get-client-names");
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
     clientNames = await response.json();
     updateClientNameSuggestions();
   } catch (error) {
     console.error("Error fetching client names:", error);
+    alert("Failed to fetch client names. Please try again later.");
   }
 }
 
@@ -77,6 +85,8 @@ async function handleFormSubmit(event) {
         `Server error: ${errorData.error}. Details: ${errorData.details}`,
       );
     }
+
+    const data = await response.json();
 
     if (newInvoice.clientName && !clientNames.includes(newInvoice.clientName)) {
       const clientResponse = await fetch(
@@ -368,11 +378,6 @@ function updateQuarterlyBonusPaidStatus(referrer, year, quarter, isPaid) {
 // Function to update paid status of an invoice
 async function updatePaidStatus(id, paid) {
   console.log(`Updating paid status for invoice ${id} to ${paid}`);
-  const invoice = invoices.find((inv) => inv.id === id);
-  if (!invoice) {
-    console.error(`Invoice with id ${id} not found`);
-    return;
-  }
   try {
     const response = await fetch(`http://localhost:3000/update-invoice/${id}`, {
       method: "PUT",
@@ -381,16 +386,22 @@ async function updatePaidStatus(id, paid) {
       },
       body: JSON.stringify({ paid }),
     });
+
     if (!response.ok) {
-      throw new Error("Failed to update invoice");
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
+
     const data = await response.json();
+
     if (data.success) {
-      invoice.paid = paid;
-      renderInvoiceList();
-      renderSummaryTables();
+      const invoice = invoices.find((inv) => inv.id === id);
+      if (invoice) {
+        invoice.paid = paid;
+        renderInvoiceList();
+        renderSummaryTables();
+      }
     } else {
-      throw new Error(data.error || "Failed to update invoice");
+      throw new Error(data.message || "Failed to update invoice");
     }
   } catch (error) {
     console.error("Error updating invoice paid status:", error);
@@ -452,3 +463,12 @@ document.getElementById("logoutBtn").addEventListener("click", function () {
   localStorage.removeItem("currentUser");
   window.location.href = "login.html";
 });
+
+// Add change password functionality
+document
+  .getElementById("changePasswordBtn")
+  .addEventListener("click", function () {
+    localStorage.setItem("changePassword", "true");
+    localStorage.removeItem("currentUser");
+    window.location.href = "login.html";
+  });
