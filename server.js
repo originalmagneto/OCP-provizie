@@ -101,6 +101,7 @@ app.post("/change-password", async (req, res) => {
     [username],
     async (err, row) => {
       if (err) {
+        console.error("Database error:", err);
         return res
           .status(500)
           .json({ success: false, message: "Database error" });
@@ -110,25 +111,36 @@ app.post("/change-password", async (req, res) => {
           .status(400)
           .json({ success: false, message: "User not found" });
       }
-      const match = await bcrypt.compare(currentPassword, row.passwordHash);
-      if (!match) {
-        return res
-          .status(400)
-          .json({ success: false, message: "Current password is incorrect" });
+      try {
+        const match = await bcrypt.compare(currentPassword, row.passwordHash);
+        if (!match) {
+          return res
+            .status(400)
+            .json({ success: false, message: "Current password is incorrect" });
+        }
+        const newPasswordHash = await bcrypt.hash(newPassword, 10);
+        db.run(
+          "UPDATE users SET passwordHash = ? WHERE username = ?",
+          [newPasswordHash, username],
+          (err) => {
+            if (err) {
+              console.error("Error updating password:", err);
+              return res
+                .status(500)
+                .json({ success: false, message: "Error updating password" });
+            }
+            res.json({
+              success: true,
+              message: "Password updated successfully",
+            });
+          },
+        );
+      } catch (error) {
+        console.error("Bcrypt error:", error);
+        res
+          .status(500)
+          .json({ success: false, message: "Error processing password" });
       }
-      const newPasswordHash = await bcrypt.hash(newPassword, 10);
-      db.run(
-        "UPDATE users SET passwordHash = ? WHERE username = ?",
-        [newPasswordHash, username],
-        (err) => {
-          if (err) {
-            return res
-              .status(500)
-              .json({ success: false, message: "Error updating password" });
-          }
-          res.json({ success: true, message: "Password updated successfully" });
-        },
-      );
     },
   );
 });
@@ -281,6 +293,20 @@ app.get("/get-client-names", (req, res) => {
       return res.status(500).json({ error: "Database error" });
     }
     res.json(rows.map((row) => row.name));
+  });
+});
+
+// Temporary route to check user data
+app.get("/check-user/:username", (req, res) => {
+  const { username } = req.params;
+  db.get("SELECT * FROM users WHERE username = ?", [username], (err, row) => {
+    if (err) {
+      return res.status(500).json({ error: "Database error" });
+    }
+    if (!row) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    res.json({ username: row.username, passwordHash: row.passwordHash });
   });
 });
 

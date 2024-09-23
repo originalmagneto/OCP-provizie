@@ -468,8 +468,6 @@ if (changePasswordForm) {
 
       if (data.success) {
         alert("Password changed successfully. You will be logged out.");
-        $("#changePasswordModal").modal("hide");
-        // Logout the user
         localStorage.removeItem("currentUser");
         window.location.href = "login.html";
       } else {
