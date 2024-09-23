@@ -443,9 +443,49 @@ if (changePasswordBtn) {
   });
 }
 
-const changePasswordForm = document.getElementById("changePasswordForm");
+const changePasswordForm = document.getElementById('changePasswordForm');
 if (changePasswordForm) {
-  changePasswordForm.addEventListener("submit", async function (e) {
+  changePasswordForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const currentPassword = document.getElementById('currentPassword').value;
+    const newPassword = document.getElementById('newPassword').value;
+    const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+
+    if (newPassword !== confirmNewPassword) {
+      alert('New passwords do not match');
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:3000/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: currentUser,
+          currentPassword,
+          newPassword
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('Password changed successfully. You will be logged out.');
+        $('#changePasswordModal').modal('hide');
+        // Logout the user
+        localStorage.removeItem("currentUser");
+        window.location.href = "login.html";
+      } else {
+        alert(data.message || 'Failed to change password');
+      }
+    } catch (error) {
+      console.error('Password change error:', error);
+      alert('An error occurred while changing the password');
+    }
+  });
+}
     e.preventDefault();
     const currentPassword = document.getElementById("currentPassword").value;
     const newPassword = document.getElementById("newPassword").value;

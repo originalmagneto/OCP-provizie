@@ -281,6 +281,63 @@ app.get("/get-client-names", (req, res) => {
 app.post("/change-password", async (req, res) => {
   const { username, currentPassword, newPassword } = req.body;
 
+  try {
+    const user = await new Promise((resolve, reject) => {
+      db.get(
+        "SELECT passwordHash FROM users WHERE username = ?",
+        [username],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        },
+      );
+    });
+
+    if (!user) {
+      return res
+        .status(400)
+        .json({ success: false, message: "User not found" });
+    }
+
+    const match = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!match) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Current password is incorrect" });
+    }
+
+    const newPasswordHash = await bcrypt.hash(newPassword, 10);
+    await new Promise((resolve, reject) => {
+      db.run(
+        "UPDATE users SET passwordHash = ? WHERE username = ?",
+        [newPasswordHash, username],
+        (err) => {
+          if (err) reject(err);
+          else resolve();
+        },
+      );
+    });
+
+    req.session.destroy((err) => {
+      if (err) {
+        console.error("Error destroying session:", err);
+      }
+      res.json({
+        success: true,
+        message: "Password updated successfully. Please log in again.",
+      });
+    });
+  } catch (error) {
+    console.error("Error in change-password route:", error);
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: "An error occurred while changing the password",
+      });
+  }
+  const { username, currentPassword, newPassword } = req.body;
+
   db.get(
     "SELECT passwordHash FROM users WHERE username = ?",
     [username],
