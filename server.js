@@ -3,15 +3,13 @@ const session = require("express-session");
 const cors = require("cors");
 const sqlite3 = require("sqlite3").verbose();
 const bcrypt = require("bcrypt");
+const path = require("path");
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
-
-const path = require("path");
 app.use(express.static(path.join(__dirname, ".")));
-
 app.use(
   session({
     secret: "your-secret-key",
@@ -21,8 +19,8 @@ app.use(
   }),
 );
 
-// Initialize SQLite database
-const db = new sqlite3.Database("./database.sqlite", (err) => {
+// Database setup
+const db = new sqlite3.Database("./users.db", (err) => {
   if (err) {
     console.error("Error opening database", err);
   } else {
@@ -31,7 +29,6 @@ const db = new sqlite3.Database("./database.sqlite", (err) => {
   }
 });
 
-// Initialize database tables
 function initializeDatabase() {
   db.serialize(() => {
     db.run(`CREATE TABLE IF NOT EXISTS users (
@@ -47,80 +44,96 @@ function initializeDatabase() {
       amount REAL,
       referrer TEXT,
       bonusPercentage REAL,
-      paid BOOLEAN
+      paid BOOLEAN,
+      createdBy TEXT
     )`);
 
     db.run(`CREATE TABLE IF NOT EXISTS clientNames (
       name TEXT PRIMARY KEY
     )`);
 
-    // Check if createdBy column exists and add it if it doesn't
-    db.all(`PRAGMA table_info(invoices)`, (err, rows) => {
-      if (err) {
-        console.error("Error checking table info:", err);
-        return;
-      }
-
-      const createdByExists = rows.some((row) => row.name === "createdBy");
-
-      if (!createdByExists) {
-        db.run(`ALTER TABLE invoices ADD COLUMN createdBy TEXT`, (alterErr) => {
-          if (alterErr) {
-            console.error("Error adding createdBy column:", alterErr);
-          } else {
-            console.log("Added createdBy column to invoices table");
-          }
-        });
-      } else {
-        console.log("createdBy column already exists in invoices table");
-      }
-    });
+    console.log("Database initialized");
   });
-
-  console.log("Database initialized");
 }
 
-// User authentication routes
+// Login route
 app.post("/login", async (req, res) => {
   const { username, password } = req.body;
+
   db.get(
     "SELECT passwordHash FROM users WHERE username = ?",
     [username],
     async (err, row) => {
       if (err) {
-        return res.status(500).json({ error: "Database error" });
+        return res
+          .status(500)
+          .json({ success: false, message: "Database error" });
       }
       if (!row) {
-        return res.status(400).json({ error: "Invalid username or password" });
+        return res
+          .status(401)
+          .json({ success: false, message: "User not found" });
       }
-      const match = await bcrypt.compare(password, row.passwordHash);
-      if (match) {
-        req.session.user = username;
-        res.json({ success: true });
-      } else {
-        res.status(400).json({ error: "Invalid username or password" });
+      try {
+        if (await bcrypt.compare(password, row.passwordHash)) {
+          req.session.user = username;
+          res.json({ success: true, message: "Login successful" });
+        } else {
+          res
+            .status(401)
+            .json({ success: false, message: "Incorrect password" });
+        }
+      } catch (error) {
+        res
+          .status(500)
+          .json({ success: false, message: "Error comparing passwords" });
       }
     },
   );
 });
 
-app.post("/set-password", async (req, res) => {
-  const { username, password } = req.body;
-  const saltRounds = 10;
-  const passwordHash = await bcrypt.hash(password, saltRounds);
-  db.run(
-    "INSERT OR REPLACE INTO users (username, passwordHash) VALUES (?, ?)",
-    [username, passwordHash],
-    (err) => {
+// Change password route
+app.post("/change-password", async (req, res) => {
+  const { username, currentPassword, newPassword } = req.body;
+
+  db.get(
+    "SELECT passwordHash FROM users WHERE username = ?",
+    [username],
+    async (err, row) => {
       if (err) {
-        return res.status(500).json({ error: "Database error" });
+        return res
+          .status(500)
+          .json({ success: false, message: "Database error" });
       }
-      res.json({ success: true });
+      if (!row) {
+        return res
+          .status(400)
+          .json({ success: false, message: "User not found" });
+      }
+      const match = await bcrypt.compare(currentPassword, row.passwordHash);
+      if (!match) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Current password is incorrect" });
+      }
+      const newPasswordHash = await bcrypt.hash(newPassword, 10);
+      db.run(
+        "UPDATE users SET passwordHash = ? WHERE username = ?",
+        [newPasswordHash, username],
+        (err) => {
+          if (err) {
+            return res
+              .status(500)
+              .json({ success: false, message: "Error updating password" });
+          }
+          res.json({ success: true, message: "Password updated successfully" });
+        },
+      );
     },
   );
 });
 
-// Invoice routes
+// Save invoice route
 app.post("/save-invoice", (req, res) => {
   const {
     year,
@@ -133,7 +146,6 @@ app.post("/save-invoice", (req, res) => {
     createdBy,
   } = req.body;
 
-  // Validate input
   if (
     !year ||
     !month ||
@@ -145,16 +157,6 @@ app.post("/save-invoice", (req, res) => {
     !createdBy
   ) {
     return res.status(400).json({ error: "Missing required fields" });
-  }
-
-  // Validate data types
-  if (
-    typeof year !== "number" ||
-    typeof month !== "number" ||
-    typeof amount !== "number" ||
-    typeof bonusPercentage !== "number"
-  ) {
-    return res.status(400).json({ error: "Invalid data types" });
   }
 
   db.run(
@@ -181,6 +183,17 @@ app.post("/save-invoice", (req, res) => {
   );
 });
 
+// Get invoices route
+app.get("/get-invoices", (req, res) => {
+  db.all("SELECT * FROM invoices", (err, rows) => {
+    if (err) {
+      return res.status(500).json({ error: "Database error" });
+    }
+    res.json(rows);
+  });
+});
+
+// Update invoice route
 app.put("/update-invoice/:id", (req, res) => {
   const { id } = req.params;
   const updateFields = [];
@@ -225,6 +238,7 @@ app.put("/update-invoice/:id", (req, res) => {
   });
 });
 
+// Delete invoice route
 app.delete("/delete-invoice/:id", (req, res) => {
   const { id } = req.params;
   const { createdBy } = req.query;
@@ -245,16 +259,7 @@ app.delete("/delete-invoice/:id", (req, res) => {
   );
 });
 
-app.get("/get-invoices", (req, res) => {
-  db.all("SELECT * FROM invoices", (err, rows) => {
-    if (err) {
-      return res.status(500).json({ error: "Database error" });
-    }
-    res.json(rows);
-  });
-});
-
-// Client name routes
+// Save client name route
 app.post("/save-client-name", (req, res) => {
   const { clientName } = req.body;
   db.run(
@@ -269,6 +274,7 @@ app.post("/save-client-name", (req, res) => {
   );
 });
 
+// Get client names route
 app.get("/get-client-names", (req, res) => {
   db.all("SELECT name FROM clientNames", (err, rows) => {
     if (err) {
@@ -278,101 +284,6 @@ app.get("/get-client-names", (req, res) => {
   });
 });
 
-app.post("/change-password", async (req, res) => {
-  const { username, currentPassword, newPassword } = req.body;
-
-  try {
-    const user = await new Promise((resolve, reject) => {
-      db.get(
-        "SELECT passwordHash FROM users WHERE username = ?",
-        [username],
-        (err, row) => {
-          if (err) reject(err);
-          else resolve(row);
-        },
-      );
-    });
-
-    if (!user) {
-      return res
-        .status(400)
-        .json({ success: false, message: "User not found" });
-    }
-
-    const match = await bcrypt.compare(currentPassword, user.passwordHash);
-    if (!match) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Current password is incorrect" });
-    }
-
-    const newPasswordHash = await bcrypt.hash(newPassword, 10);
-    await new Promise((resolve, reject) => {
-      db.run(
-        "UPDATE users SET passwordHash = ? WHERE username = ?",
-        [newPasswordHash, username],
-        (err) => {
-          if (err) reject(err);
-          else resolve();
-        },
-      );
-    });
-
-    req.session.destroy((err) => {
-      if (err) {
-        console.error("Error destroying session:", err);
-      }
-      res.json({
-        success: true,
-        message: "Password updated successfully. Please log in again.",
-      });
-    });
-  } catch (error) {
-    console.error("Error in change-password route:", error);
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "An error occurred while changing the password",
-      });
-  }
-  const { username, currentPassword, newPassword } = req.body;
-
-  db.get(
-    "SELECT passwordHash FROM users WHERE username = ?",
-    [username],
-    async (err, row) => {
-      if (err) {
-        return res
-          .status(500)
-          .json({ success: false, message: "Database error" });
-      }
-      if (!row) {
-        return res
-          .status(400)
-          .json({ success: false, message: "User not found" });
-      }
-      const match = await bcrypt.compare(currentPassword, row.passwordHash);
-      if (!match) {
-        return res
-          .status(400)
-          .json({ success: false, message: "Current password is incorrect" });
-      }
-      const newPasswordHash = await bcrypt.hash(newPassword, 10);
-      db.run(
-        "UPDATE users SET passwordHash = ? WHERE username = ?",
-        [newPasswordHash, username],
-        (err) => {
-          if (err) {
-            return res
-              .status(500)
-              .json({ success: false, message: "Error updating password" });
-          }
-          res.json({ success: true, message: "Password updated successfully" });
-        },
-      );
-    },
-  );
-});
-
-app.listen(3000, () => console.log("Server running on port 3000"));
+// Start the server
+const PORT = 3000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
