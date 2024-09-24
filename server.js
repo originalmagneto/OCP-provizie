@@ -1,372 +1,92 @@
 const express = require("express");
-const path = require("path");
+const { Pool } = require("pg");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
-const { Pool } = require('pg');
-const dotenv = require('dotenv');
-
-dotenv.config();
 
 const app = express();
-
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname)));
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
-    rejectUnauthorized: false
-  }
+    rejectUnauthorized: false,
+  },
 });
 
 // Test database connection
-pool.query('SELECT NOW()', (err, res) => {
+pool.query("SELECT NOW()", (err, res) => {
   if (err) {
-    console.error('Error connecting to the database:', err);
-    console.error('Database URL:', process.env.DATABASE_URL);
+    console.error("Error connecting to the database:", err);
+    console.error("Database URL:", process.env.DATABASE_URL);
   } else {
-    console.log('Successfully connected to the database');
+    console.log("Successfully connected to the database");
   }
 });
 
-  async function initializeDatabase() {
-
-    async function checkAndInitializeDefaultUsers() {
-      const defaultUsers = [
-        { username: "AdvokatiCHZ", password: "default123", requirePasswordChange: true },
-        { username: "MKMs", password: "default123", requirePasswordChange: true },
-        { username: "Contax", password: "default123", requirePasswordChange: true },
-      ];
-
-      try {
-        const result = await pool.query("SELECT username FROM users");
-        const existingUsernames = result.rows.map(row => row.username);
-
-        for (const user of defaultUsers) {
-          if (!existingUsernames.includes(user.username)) {
-            const hashedPassword = await bcrypt.hash(user.password, 10);
-            await pool.query(
-              "INSERT INTO users (username, password, requirePasswordChange) VALUES ($1, $2, $3)",
-              [user.username, hashedPassword, user.requirePasswordChange]
-            );
-            console.log(`User ${user.username} initialized`);
-          }
-        }
-      } catch (err) {
-        console.error("Error initializing default users:", err);
-      }
-    }
-
-    const tables = [
-      "CREATE TABLE IF NOT EXISTS users (" +
-        "username TEXT PRIMARY KEY," +
-        "password TEXT," +
-        "requirePasswordChange BOOLEAN" +
+async function initializeDatabase() {
+  const tables = [
+    "CREATE TABLE IF NOT EXISTS users (" +
+      "username TEXT PRIMARY KEY," +
+      "password TEXT," +
+      "requirePasswordChange BOOLEAN" +
       ")",
-      "CREATE TABLE IF NOT EXISTS invoices (" +
-        "id SERIAL PRIMARY KEY," +
-        "year INTEGER," +
-        "month INTEGER," +
-        "clientName TEXT," +
-        "amount REAL," +
-        "referrer TEXT," +
-        "bonusPercentage REAL," +
-        "paid BOOLEAN," +
-        "createdBy TEXT" +
+    "CREATE TABLE IF NOT EXISTS invoices (" +
+      "id SERIAL PRIMARY KEY," +
+      "year INTEGER," +
+      "month INTEGER," +
+      "clientName TEXT," +
+      "amount REAL," +
+      "referrer TEXT," +
+      "bonusPercentage REAL," +
+      "paid BOOLEAN," +
+      "createdBy TEXT" +
       ")",
-      "CREATE TABLE IF NOT EXISTS clients (" +
-        "id SERIAL PRIMARY KEY," +
-        "name TEXT UNIQUE" +
+    "CREATE TABLE IF NOT EXISTS clients (" +
+      "id SERIAL PRIMARY KEY," +
+      "name TEXT UNIQUE" +
       ")",
-      "CREATE TABLE IF NOT EXISTS quarterly_bonus_status (" +
-        "referrer TEXT," +
-        "year INTEGER," +
-        "quarter INTEGER," +
-        "paid BOOLEAN," +
-        "PRIMARY KEY (referrer, year, quarter)" +
-      ")"
-    ];
+    "CREATE TABLE IF NOT EXISTS quarterly_bonus_status (" +
+      "referrer TEXT," +
+      "year INTEGER," +
+      "quarter INTEGER," +
+      "paid BOOLEAN," +
+      "PRIMARY KEY (referrer, year, quarter)" +
+      ")",
+  ];
 
-    try {
-        for (const table of tables) {
-          try {
-            await pool.query(table);
-          } catch (queryError) {
-            console.error(`Error executing query: ${table}`);
-            console.error(queryError);
-            throw queryError;
-          }
-        }
-        console.log("Database tables created or already exist");
-        await checkAndInitializeDefaultUsers();
-      } catch (err) {
-        console.error("Error initializing database:", err);
-      }
+  try {
+    for (const table of tables) {
+      await pool.query(table);
     }
-
-  async function executeSqlWithErrorLogging(sql, params = []) {
-    try {
-      const result = await pool.query(sql, params);
-      console.log(`Successfully executed query: ${sql.substring(0, 50)}...`);
-      return result;
-    } catch (error) {
-      console.error(`Error executing SQL: ${sql}`);
-      console.error('Error details:', error);
-      console.error('Stack trace:', error.stack);
-      throw error;
-    }
+    console.log("Database tables created or already exist");
+    await checkAndInitializeDefaultUsers();
+  } catch (err) {
+    console.error("Error initializing database:", err);
   }
-
-  // Update initializeDatabase function to use executeSqlWithErrorLogging
-  async function initializeDatabase() {
-    const tables = [
-      "CREATE TABLE IF NOT EXISTS users (" +
-        "username TEXT PRIMARY KEY," +
-        "password TEXT," +
-        "requirePasswordChange BOOLEAN" +
-      ")",
-      "CREATE TABLE IF NOT EXISTS invoices (" +
-        "id SERIAL PRIMARY KEY," +
-        "year INTEGER," +
-        "month INTEGER," +
-        "clientName TEXT," +
-        "amount REAL," +
-        "referrer TEXT," +
-        "bonusPercentage REAL," +
-        "paid BOOLEAN," +
-        "createdBy TEXT" +
-      ")",
-      "CREATE TABLE IF NOT EXISTS clients (" +
-        "id SERIAL PRIMARY KEY," +
-        "name TEXT UNIQUE" +
-      ")",
-      "CREATE TABLE IF NOT EXISTS quarterly_bonus_status (" +
-        "referrer TEXT," +
-        "year INTEGER," +
-        "quarter INTEGER," +
-        "paid BOOLEAN," +
-        "PRIMARY KEY (referrer, year, quarter)" +
-      ")"
-    ];
-
-    try {
-      for (const table of tables) {
-        await executeSqlWithErrorLogging(table);
-      }
-      console.log("Database tables created or already exist");
-      await checkAndInitializeDefaultUsers();
-    } catch (err) {
-      console.error("Error initializing database:", err);
-    }
-  }
-
-
-initializeDatabase();
-
-
-    // Create clients table if it doesn't exist
-
-
-
-    db.run(
-      `CREATE TABLE IF NOT EXISTS clients (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT UNIQUE
-        )`,
-      (err) => {
-        if (err) {
-          console.error("Error creating clients table:", err);
-        } else {
-          console.log("Clients table created or already exists");
-        }
-      },
-    );
-
-    // Create quarterly_bonus_status table if it doesn't exist
-    db.run(
-      `CREATE TABLE IF NOT EXISTS quarterly_bonus_status (
-            referrer TEXT,
-            year INTEGER,
-            quarter INTEGER,
-            paid INTEGER,
-            PRIMARY KEY (referrer, year, quarter)
-        )`,
-      (err) => {
-        if (err) {
-          console.error("Error creating quarterly_bonus_status table:", err);
-        } else {
-          console.log("Quarterly bonus status table created or already exists");
-        }
-      },
-    );
-  });
 }
 
 async function checkAndInitializeDefaultUsers() {
-
-    app.post("/login", async (req, res) => {
-    const { username, password } = req.body;
-    console.log("Login attempt:", username);
-
-    try {
-      const result = await pool.query("SELECT * FROM users WHERE username = $1", [username]);
-      const user = result.rows[0];
-
-      if (!user) {
-        console.log("User not found:", username);
-        return res.json({ success: false, message: "User not found" });
-      }
-
-      const isMatch = await bcrypt.compare(password, user.password);
-      if (isMatch) {
-        console.log("Successful login:", username);
-        res.json({
-          success: true,
-          requirePasswordChange: user.requirepasswordchange
-        });
-      } else {
-        console.log("Invalid password for user:", username);
-        res.json({ success: false, message: "Invalid password" });
-      }
-    } catch (err) {
-      console.error("Database error:", err);
-      res.status(500).json({ success: false, message: "Server error" });
-    }
-  });
-
-  app.post("/change-password", async (req, res) => {
-    const { username, newPassword } = req.body;
-    console.log("Password change attempt for:", username);
-
-    try {
-      const hashedPassword = await bcrypt.hash(newPassword, 10);
-      await pool.query(
-        "UPDATE users SET password = $1, requirePasswordChange = false WHERE username = $2",
-        [hashedPassword, username]
-      );
-      console.log(`Password updated successfully for user: ${username}`);
-      res.json({ success: true });
-    } catch (err) {
-      console.error("Error updating password:", err);
-      res.status(500).json({ success: false, message: "Failed to update password" });
-    }
-  });
-
-  app.get("/get-invoices", async (req, res) => {
-    try {
-      const result = await pool.query("SELECT * FROM invoices");
-      console.log(`Successfully fetched ${result.rows.length} invoices`);
-      res.json(result.rows);
-    } catch (err) {
-      console.error("Error fetching invoices:", err);
-      res.status(500).json({ error: "Internal server error", details: err.message });
-    }
-  });
-
-  app.post("/save-invoice", async (req, res) => {
-    const {
-      year,
-      month,
-      clientName,
-      amount,
-      referrer,
-      bonusPercentage,
-      paid,
-      createdBy,
-    } = req.body;
-    const query = `INSERT INTO invoices (year, month, clientName, amount, referrer, bonusPercentage, paid, createdBy)
-                   VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`;
-    try {
-      const result = await pool.query(query, [year, month, clientName, amount, referrer, bonusPercentage, paid, createdBy]);
-      res.json({ success: true, id: result.rows[0].id });
-    } catch (err) {
-      console.error("Error saving invoice:", err);
-      res.status(500).json({ error: "Failed to save invoice", details: err.message });
-    }
-  });
-
-  app.put("/update-invoice/:id", async (req, res) => {
-    const { id } = req.params;
-    const {
-      paid,
-      year,
-      month,
-      clientName,
-      amount,
-      referrer,
-      bonusPercentage,
-      createdBy,
-      currentUser
-    } = req.body;
-
-    try {
-      const invoiceResult = await pool.query("SELECT referrer FROM invoices WHERE id = $1", [id]);
-      if (invoiceResult.rows.length === 0) {
-        return res.status(404).json({ success: false, message: "Invoice not found" });
-      }
-      if (invoiceResult.rows[0].referrer !== currentUser) {
-        return res.status(403).json({ success: false, message: "Not authorized to update this invoice" });
-      }
-
-      let query, params;
-      if (paid !== undefined) {
-        query = "UPDATE invoices SET paid = $1 WHERE id = $2";
-        params = [paid, id];
-      } else {
-        query = `UPDATE invoices SET
-                 year = $1, month = $2, clientName = $3, amount = $4,
-                 referrer = $5, bonusPercentage = $6, paid = $7, createdBy = $8
-                 WHERE id = $9`;
-        params = [year, month, clientName, amount, referrer, bonusPercentage, paid, createdBy, id];
-      }
-
-      const updateResult = await pool.query(query, params);
-      if (updateResult.rowCount === 0) {
-        return res.status(404).json({ success: false, message: "Invoice not found" });
-      }
-      res.json({ success: true });
-    } catch (err) {
-      console.error("Error updating invoice:", err);
-      res.status(500).json({ success: false, message: "Failed to update invoice" });
-    }
-  });
-
-  app.delete("/delete-invoice/:id", async (req, res) => {
-    const { id } = req.params;
-    const { createdBy } = req.query;
-
-    try {
-      const result = await pool.query("DELETE FROM invoices WHERE id = $1 AND createdBy = $2", [id, createdBy]);
-      if (result.rowCount === 0) {
-        return res.status(404).json({
-          success: false,
-          message: "Invoice not found or not authorized to delete",
-        });
-      }
-      res.json({ success: true });
-    } catch (err) {
-      console.error("Error deleting invoice:", err);
-      res.status(500).json({ success: false, message: "Failed to delete invoice" });
-    }
-  });
-
   const defaultUsers = [
-    { username: "AdvokatiCHZ", password: "default123", requirePasswordChange: true },
+    {
+      username: "AdvokatiCHZ",
+      password: "default123",
+      requirePasswordChange: true,
+    },
     { username: "MKMs", password: "default123", requirePasswordChange: true },
     { username: "Contax", password: "default123", requirePasswordChange: true },
   ];
 
   try {
     const result = await pool.query("SELECT username FROM users");
-    const existingUsernames = result.rows.map(row => row.username);
+    const existingUsernames = result.rows.map((row) => row.username);
 
     for (const user of defaultUsers) {
       if (!existingUsernames.includes(user.username)) {
         const hashedPassword = await bcrypt.hash(user.password, 10);
         await pool.query(
           "INSERT INTO users (username, password, requirePasswordChange) VALUES ($1, $2, $3)",
-          [user.username, hashedPassword, user.requirePasswordChange]
+          [user.username, hashedPassword, user.requirePasswordChange],
         );
         console.log(`User ${user.username} initialized`);
       }
@@ -376,108 +96,80 @@ async function checkAndInitializeDefaultUsers() {
   }
 }
 
-
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "login.html"));
-});
-
-app.post("/login", (req, res) => {
+app.post("/login", async (req, res) => {
   const { username, password } = req.body;
   console.log("Login attempt:", username);
 
-  db.get("SELECT * FROM users WHERE username = ?", [username], (err, user) => {
-    if (err) {
-      console.error("Database error:", err);
-      return res.status(500).json({ success: false, message: "Server error" });
+  try {
+    const result = await pool.query("SELECT * FROM users WHERE username = $1", [
+      username,
+    ]);
+    const user = result.rows[0];
 
-      // Verify that the DATABASE_URL environment variable is correctly set
-      // Check the Render dashboard under the Environment tab if issues persist
-
-    }
     if (!user) {
       console.log("User not found:", username);
       return res.json({ success: false, message: "User not found" });
     }
-    bcrypt.compare(password, user.password, (err, result) => {
-      if (err) {
-        console.error("Password comparison error:", err);
-        return res
-          .status(500)
-          .json({ success: false, message: "Server error" });
-      }
-      if (result) {
-        console.log("Successful login:", username);
-        res.json({
-          success: true,
-          requirePasswordChange: user.requirePasswordChange === 1,
-        });
-      } else {
-        console.log("Invalid password for user:", username);
-        res.json({ success: false, message: "Invalid password" });
-      }
-    });
-  });
-});
 
-app.post("/change-password", (req, res) => {
-  const { username, newPassword } = req.body;
-  console.log("Password change attempt for:", username);
-
-  bcrypt.hash(newPassword, 10, (err, hash) => {
-    if (err) {
-      console.error("Error hashing new password:", err);
-      return res.status(500).json({ success: false, message: "Server error" });
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (isMatch) {
+      console.log("Successful login:", username);
+      res.json({
+        success: true,
+        requirePasswordChange: user.requirepasswordchange,
+      });
+    } else {
+      console.log("Invalid password for user:", username);
+      res.json({ success: false, message: "Invalid password" });
     }
-    db.run(
-      "UPDATE users SET password = ?, requirePasswordChange = 0 WHERE username = ?",
-      [hash, username],
-      (err) => {
-        if (err) {
-          console.error("Error updating password:", err);
-          return res
-            .status(500)
-            .json({ success: false, message: "Failed to update password" });
-        }
-        console.log(`Password updated successfully for user: ${username}`);
-        res.json({ success: true });
-      },
-    );
-  });
-});
-
-app.get("/get-invoices", (req, res) => {
-  pool.query("SELECT * FROM invoices", (err, result) => {
-    if (err) {
-      console.error("Error fetching invoices:", err);
-      return res.status(500).json({ error: "Internal server error", details: err.message });
-    }
-    console.log(`Successfully fetched ${result.rows.length} invoices`);
-    res.json(result.rows);
-  });
-});
-
-app.get("/get-client-names", async (req, res) => {
-  console.log("Fetching client names...");
-  try {
-    const startTime = Date.now();
-    const result = await pool.query("SELECT DISTINCT clientName FROM invoices");
-    const clientNames = result.rows.map(row => row.clientName);
-    const duration = Date.now() - startTime;
-    console.log(`Successfully fetched ${clientNames.length} client names in ${duration}ms`);
-    res.json(clientNames);
   } catch (err) {
-    console.error("Error fetching client names:", err);
-    console.error("Stack trace:", err.stack);
-    res.status(500).json({
-      error: "Internal server error",
-      details: err.message,
-      timestamp: new Date().toISOString(),
-      endpoint: "/get-client-names"
-    });
+    console.error("Database error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
-app.post("/save-invoice", (req, res) => {
+app.post("/change-password", async (req, res) => {
+  const { username, newPassword } = req.body;
+  console.log("Password change attempt for:", username);
+
+  try {
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await pool.query(
+      "UPDATE users SET password = $1, requirePasswordChange = false WHERE username = $2",
+      [hashedPassword, username],
+    );
+    console.log(`Password updated successfully for user: ${username}`);
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Error updating password:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to update password" });
+  }
+});
+
+app.get("/get-invoices", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM invoices");
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching invoices:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.get("/get-client-names", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT DISTINCT clientName FROM invoices");
+    const clientNames = result.rows.map((row) => row.clientName);
+    res.json(clientNames);
+  } catch (err) {
+    console.error("Error fetching client names:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.post("/save-invoice", async (req, res) => {
   const {
     year,
     month,
@@ -489,47 +181,42 @@ app.post("/save-invoice", (req, res) => {
     createdBy,
   } = req.body;
   const query = `INSERT INTO invoices (year, month, clientName, amount, referrer, bonusPercentage, paid, createdBy)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
-  db.run(
-    query,
-    [
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`;
+  try {
+    const result = await pool.query(query, [
       year,
       month,
       clientName,
       amount,
       referrer,
       bonusPercentage,
-      paid ? 1 : 0,
+      paid,
       createdBy,
-    ],
-    function (err) {
-      if (err) {
-        console.error("Error saving invoice:", err);
-        return res
-          .status(500)
-          .json({ error: "Failed to save invoice", details: err.message });
-      }
-      res.json({ success: true, id: this.lastID });
-    },
-  );
+    ]);
+    res.json({ success: true, id: result.rows[0].id });
+  } catch (err) {
+    console.error("Error saving invoice:", err);
+    res
+      .status(500)
+      .json({ error: "Failed to save invoice", details: err.message });
+  }
 });
 
-app.post("/save-client-name", (req, res) => {
+app.post("/save-client-name", async (req, res) => {
   const { clientName } = req.body;
-  db.run(
-    "INSERT OR IGNORE INTO clients (name) VALUES (?)",
-    [clientName],
-    (err) => {
-      if (err) {
-        console.error("Error saving client name:", err);
-        return res.status(500).json({ error: "Failed to save client name" });
-      }
-      res.json({ success: true });
-    },
-  );
+  try {
+    await pool.query(
+      "INSERT INTO clients (name) VALUES ($1) ON CONFLICT (name) DO NOTHING",
+      [clientName],
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Error saving client name:", err);
+    res.status(500).json({ error: "Failed to save client name" });
+  }
 });
 
-app.put("/update-invoice/:id", (req, res) => {
+app.put("/update-invoice/:id", async (req, res) => {
   const { id } = req.params;
   const {
     paid,
@@ -543,20 +230,17 @@ app.put("/update-invoice/:id", (req, res) => {
   } = req.body;
   const currentUser = req.body.currentUser;
 
-  // Check if the user is authorized to update this invoice
-  db.get("SELECT referrer FROM invoices WHERE id = ?", [id], (err, row) => {
-    if (err) {
-      console.error("Error fetching invoice:", err);
-      return res
-        .status(500)
-        .json({ success: false, message: "Failed to fetch invoice" });
-    }
-    if (!row) {
+  try {
+    const checkResult = await pool.query(
+      "SELECT referrer FROM invoices WHERE id = $1",
+      [id],
+    );
+    if (checkResult.rows.length === 0) {
       return res
         .status(404)
         .json({ success: false, message: "Invoice not found" });
     }
-    if (row.referrer !== currentUser) {
+    if (checkResult.rows[0].referrer !== currentUser) {
       return res
         .status(403)
         .json({
@@ -565,18 +249,15 @@ app.put("/update-invoice/:id", (req, res) => {
         });
     }
 
-    // If authorized, proceed with the update
     let query, params;
     if (paid !== undefined) {
-      // If only updating paid status
-      query = "UPDATE invoices SET paid = ? WHERE id = ?";
-      params = [paid ? 1 : 0, id];
+      query = "UPDATE invoices SET paid = $1 WHERE id = $2";
+      params = [paid, id];
     } else {
-      // If updating all invoice details
       query = `UPDATE invoices SET
-                     year = ?, month = ?, clientName = ?, amount = ?,
-                     referrer = ?, bonusPercentage = ?, paid = ?, createdBy = ?
-                     WHERE id = ?`;
+               year = $1, month = $2, clientName = $3, amount = $4,
+               referrer = $5, bonusPercentage = $6, paid = $7, createdBy = $8
+               WHERE id = $9`;
       params = [
         year,
         month,
@@ -584,54 +265,51 @@ app.put("/update-invoice/:id", (req, res) => {
         amount,
         referrer,
         bonusPercentage,
-        paid ? 1 : 0,
+        paid,
         createdBy,
         id,
       ];
     }
 
-    db.run(query, params, function (err) {
-      if (err) {
-        console.error("Error updating invoice:", err);
-        return res
-          .status(500)
-          .json({ success: false, message: "Failed to update invoice" });
-      }
-      if (this.changes === 0) {
-        return res
-          .status(404)
-          .json({ success: false, message: "Invoice not found" });
-      }
-      res.json({ success: true });
-    });
-  });
+    const result = await pool.query(query, params);
+    if (result.rowCount === 0) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Invoice not found" });
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Error updating invoice:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to update invoice" });
+  }
 });
 
-app.delete("/delete-invoice/:id", (req, res) => {
+app.delete("/delete-invoice/:id", async (req, res) => {
   const { id } = req.params;
   const { createdBy } = req.query;
 
-  db.run(
-    "DELETE FROM invoices WHERE id = ? AND createdBy = ?",
-    [id, createdBy],
-    function (err) {
-      if (err) {
-        console.error("Error deleting invoice:", err);
-        return res
-          .status(500)
-          .json({ success: false, message: "Failed to delete invoice" });
-      }
-      if (this.changes === 0) {
-        return res
-          .status(404)
-          .json({
-            success: false,
-            message: "Invoice not found or not authorized to delete",
-          });
-      }
-      res.json({ success: true });
-    },
-  );
+  try {
+    const result = await pool.query(
+      "DELETE FROM invoices WHERE id = $1 AND createdBy = $2",
+      [id, createdBy],
+    );
+    if (result.rowCount === 0) {
+      return res
+        .status(404)
+        .json({
+          success: false,
+          message: "Invoice not found or not authorized to delete",
+        });
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Error deleting invoice:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to delete invoice" });
+  }
 });
 
 app.get("/quarterly-bonus-status", async (req, res) => {
@@ -642,36 +320,38 @@ app.get("/quarterly-bonus-status", async (req, res) => {
       if (!status[row.referrer]) {
         status[row.referrer] = {};
       }
-      status[row.referrer][`${row.year}-${row.quarter}`] = row.paid === true;
+      status[row.referrer][`${row.year}-${row.quarter}`] = row.paid;
     });
-    console.log(`Successfully fetched quarterly bonus status for ${Object.keys(status).length} referrers`);
     res.json(status);
   } catch (err) {
     console.error("Error fetching quarterly bonus status:", err);
-    res.status(500).json({ error: "Internal server error", details: err.message });
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
-app.post("/update-quarterly-bonus-status", (req, res) => {
+app.post("/update-quarterly-bonus-status", async (req, res) => {
   const { referrer, year, quarter, isPaid } = req.body;
-  const query = `INSERT OR REPLACE INTO quarterly_bonus_status (referrer, year, quarter, paid)
-                   VALUES (?, ?, ?, ?)`;
-  db.run(query, [referrer, year, quarter, isPaid ? 1 : 0], function (err) {
-    if (err) {
-      console.error("Error updating quarterly bonus status:", err);
-      return res.status(500).json({ error: "Failed to update status" });
-    }
+  const query = `INSERT INTO quarterly_bonus_status (referrer, year, quarter, paid)
+                 VALUES ($1, $2, $3, $4)
+                 ON CONFLICT (referrer, year, quarter) DO UPDATE SET paid = $4`;
+  try {
+    await pool.query(query, [referrer, year, quarter, isPaid]);
     res.json({ success: true });
-  });
+  } catch (err) {
+    console.error("Error updating quarterly bonus status:", err);
+    res.status(500).json({ error: "Failed to update status" });
+  }
 });
 
 const PORT = process.env.PORT || 3000;
 
-initializeDatabase().then(() => {
-  app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+initializeDatabase()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error("Failed to initialize database:", err);
+    process.exit(1);
   });
-}).catch(err => {
-  console.error("Failed to initialize database:", err);
-  process.exit(1);
-});
