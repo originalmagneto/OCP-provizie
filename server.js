@@ -3,9 +3,47 @@ const { Pool } = require("pg");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
 
+const session = require("express-session");
+
+app.use(
+  session({
+    secret: "your-secret-key",
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: process.env.NODE_ENV === "production" },
+  }),
+);
+
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+const session = require("express-session");
+
+// Middleware to check if user is logged in
+const checkAuth = (req, res, next) => {
+  if (!req.session || !req.session.user) {
+    return res.redirect("/login");
+  }
+  next();
+};
+
+app.use(
+  session({
+    secret: "your-secret-key",
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: process.env.NODE_ENV === "production" },
+  }),
+);
+
+// Protect all routes except login
+app.use((req, res, next) => {
+  if (req.path === "/login") {
+    return next();
+  }
+  checkAuth(req, res, next);
+});
 
 const path = require("path");
 
@@ -108,10 +146,6 @@ app.post("/login", async (req, res) => {
   const { username, password } = req.body;
   console.log("Login attempt:", username);
 
-  app.get("/login", (req, res) => {
-    res.sendFile(path.join(__dirname, "public", "login.html"));
-  });
-
   try {
     const result = await pool.query("SELECT * FROM users WHERE username = $1", [
       username,
@@ -126,6 +160,7 @@ app.post("/login", async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (isMatch) {
       console.log("Successful login:", username);
+      req.session.user = { username: user.username };
       res.json({
         success: true,
         requirePasswordChange: user.requirepasswordchange,
