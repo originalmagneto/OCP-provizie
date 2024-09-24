@@ -538,3 +538,6 @@ document
     localStorage.removeItem("currentUser");
     window.location.href = "login.html";
   });
+// Update API_BASE_URL to use the current origin
+const API_BASE_URL = window.location.origin;
+console.log("API_BASE_URL set to:", API_BASE_URL);
