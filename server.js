@@ -2,9 +2,13 @@ const express = require("express");
 const { Pool } = require("pg");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
-
 const session = require("express-session");
+const path = require("path");
 
+const app = express();
+
+app.use(cors());
+app.use(express.json());
 app.use(
   session({
     secret: "your-secret-key",
@@ -14,11 +18,19 @@ app.use(
   }),
 );
 
-const app = express();
-app.use(cors());
-app.use(express.json());
+// Middleware to check if user is logged in
+const checkAuth = (req, res, next) => {
+  if (!req.session || !req.session.user) {
+    return res.redirect("/login");
+  }
+  next();
+};
 
-const session = require("express-session");
+// Use this middleware for protected routes
+app.use("/api", checkAuth); // Protect all routes under /api
+app.get("/", checkAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
 
 // Middleware to check if user is logged in
 const checkAuth = (req, res, next) => {
