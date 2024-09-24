@@ -2,33 +2,43 @@ const express = require("express");
 const path = require("path");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
-const sqlite3 = require("sqlite3").verbose();
+const { Pool } = require('pg');
 
 const app = express();
+
+const dotenv = require('dotenv');
+dotenv.config();
+
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
-// Use a fixed path for the database file in the project directory
-const dbPath = path.join(__dirname, "users.db");
-const db = new sqlite3.Database(dbPath, (err) => {
+const pool = new Pool({
+  connectionString: process.env.postgresql://invoice_app_db_8503_user:JPDraddTVdf7m3ewLCGF6ckmaFH01qTu@dpg-crp7o5aj1k6c73c1agdg-a.frankfurt-postgres.render.com/invoice_app_db_8503,
+  ssl: {
+    rejectUnauthorized: false
+  }
+});
+
+pool.connect((err) => {
   if (err) {
-    console.error("Error opening database", err);
+    console.error("Error connecting to database", err);
   } else {
     console.log("Database connected");
     initializeDatabase();
+
+        // The pool
+
   }
 });
 
 function initializeDatabase() {
-  db.serialize(() => {
-    // Create users table if it doesn't exist
-    db.run(
-      `CREATE TABLE IF NOT EXISTS users (
-            username TEXT PRIMARY KEY,
-            password TEXT,
-            requirePasswordChange INTEGER
-        )`,
+  pool.query(
+    `CREATE TABLE IF NOT EXISTS users (
+      username TEXT PRIMARY KEY,
+      password TEXT,
+      requirePasswordChange BOOLEAN
+    )`,
       (err) => {
         if (err) {
           console.error("Error creating users table:", err);
@@ -204,12 +214,12 @@ app.post("/change-password", (req, res) => {
 });
 
 app.get("/get-invoices", (req, res) => {
-  db.all("SELECT * FROM invoices", (err, rows) => {
+  pool.query("SELECT * FROM invoices", (err, result) => {
     if (err) {
       console.error("Error fetching invoices:", err);
       return res.status(500).json({ error: "Internal server error" });
     }
-    res.json(rows);
+    res.json(result.rows);
   });
 });
 
