@@ -10,8 +10,20 @@ const app = express();
 pool.query('SELECT NOW()', (err, res) => {
   if (err) {
     console.error('Error connecting to the database:', err);
+    console.error('Database connection error details:', {
+      message: err.message,
+      stack: err.stack,
+      code: err.code,
+      connectionString: process.env.DATABASE_URL ? 'Set' : 'Not set'
+    });
   } else {
     console.log('Successfully connected to the database');
+    console.log('Database connection details:', {
+      user: pool.options.user,
+      host: pool.options.host,
+      database: pool.options.database,
+      port: pool.options.port
+    });
   }
 });
 
@@ -23,7 +35,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
 const pool = new Pool({
-  connectionString: process.env.postgresql://invoice_app_db_8503_user:JPDraddTVdf7m3ewLCGF6ckmaFH01qTu@dpg-crp7o5aj1k6c73c1agdg-a.frankfurt-postgres.render.com/invoice_app_db_8503,
+  connectionString: process.env.DATABASE_URL,
   ssl: {
     rejectUnauthorized: false
   }
