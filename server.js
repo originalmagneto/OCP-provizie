@@ -27,6 +27,14 @@ const pool = new Pool({
 });
 
 // Routes
+app.get("/login", (req, res) => {
+  if (req.session.user) {
+    res.redirect("/");
+  } else {
+    res.sendFile(path.join(__dirname, "public", "login.html"));
+  }
+});
+
 app.post("/login", async (req, res) => {
   const { username, password } = req.body;
 
@@ -79,14 +87,13 @@ app.post("/change-password", async (req, res) => {
   }
 });
 
-// Serve the main HTML file for all routes
-
-app.get("/login", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "login.html"));
-});
-
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+// Serve the main HTML file for authenticated users
+app.get("/", (req, res) => {
+  if (req.session.user) {
+    res.sendFile(path.join(__dirname, "public", "index.html"));
+  } else {
+    res.redirect("/login");
+  }
 });
 
 const PORT = process.env.PORT || 3000;
