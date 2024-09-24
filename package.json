@@ -1,6 +1,6 @@
 {
   "name": "ocp-provizie-v3",
-  "version": "0.0.25",
+  "version": "0.0.26",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
