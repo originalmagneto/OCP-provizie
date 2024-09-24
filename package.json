@@ -1,6 +1,6 @@
 {
   "name": "ocp-provizie-v3",
-  "version": "0.0.33",
+  "version": "0.0.30",
   "description": "Invoice Earnings Calculator",
   "main": "server.js",
   "scripts": {
@@ -19,16 +19,5 @@
   },
   "engines": {
     "node": ">=14.0.0"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/originalmagneto/OCP-provizie.git"
-  },
-  "keywords": [
-    "invoice",
-    "calculator",
-    "earnings"
-  ],
-  "author": "Your Name",
-  "license": "ISC"
+  }
 }
