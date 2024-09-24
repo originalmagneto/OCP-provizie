@@ -3,26 +3,37 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Login - Invoice Earnings Calculator</title>
+        <title>Invoice Earnings Calculator</title>
         <link rel="stylesheet" href="/styles.css" />
     </head>
     <body>
-        <div class="login-container">
-            <h1>Login</h1>
-            <form id="loginForm">
-                <label for="username">Username:</label>
-                <select id="username" required>
-                    <option value="">Select User</option>
-                    <option value="AdvokatiCHZ">AdvokatiCHZ</option>
-                    <option value="MKMs">MKMs</option>
-                    <option value="Contax">Contax</option>
-                </select>
+        <div id="app" class="container">
+            <h1>Invoice Earnings Calculator</h1>
 
-                <label for="password">Password:</label>
-                <input type="password" id="password" name="password" required />
+            <div id="loginSection">
+                <h2>Login</h2>
+                <form id="loginForm">
+                    <select id="username" required>
+                        <option value="">Select User</option>
+                        <option value="AdvokatiCHZ">AdvokatiCHZ</option>
+                        <option value="MKMs">MKMs</option>
+                        <option value="Contax">Contax</option>
+                    </select>
+                    <input
+                        type="password"
+                        id="password"
+                        placeholder="Password"
+                        required
+                    />
+                    <button type="submit">Login</button>
+                </form>
+            </div>
 
-                <button type="submit">Login</button>
-            </form>
+            <div id="mainContent" style="display: none">
+                <button id="logoutBtn">Logout</button>
+                <button id="changePasswordBtn">Change Password</button>
+                <!-- Add more main content here -->
+            </div>
         </div>
         <script src="/app.js"></script>
     </body>
