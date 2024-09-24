@@ -43,17 +43,14 @@ pool.query('SELECT NOW()', (err, res) => {
 });
 
 ```javascript
-async function initializeDatabase() {
-  try {
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS users (
+  async function initializeDatabase() {
+    const tables = [
+      `CREATE TABLE IF NOT EXISTS users (
         username TEXT PRIMARY KEY,
         password TEXT,
         requirePasswordChange BOOLEAN
-      )
-    `);
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS invoices (
+      )`,
+      `CREATE TABLE IF NOT EXISTS invoices (
         id SERIAL PRIMARY KEY,
         year INTEGER,
         month INTEGER,
@@ -63,29 +60,31 @@ async function initializeDatabase() {
         bonusPercentage REAL,
         paid BOOLEAN,
         createdBy TEXT
-      )
-    `);
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS clients (
+      )`,
+      `CREATE TABLE IF NOT EXISTS clients (
         id SERIAL PRIMARY KEY,
         name TEXT UNIQUE
-      )
-    `);
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS quarterly_bonus_status (
+      )`,
+      `CREATE TABLE IF NOT EXISTS quarterly_bonus_status (
         referrer TEXT,
         year INTEGER,
         quarter INTEGER,
         paid BOOLEAN,
         PRIMARY KEY (referrer, year, quarter)
-      )
-    `);
-    console.log("Database tables created or already exist");
-    await checkAndInitializeDefaultUsers();
-  } catch (err) {
-    console.error("Error initializing database:", err);
+      )`
+    ];
+
+    try {
+      for (const table of tables) {
+        await pool.query(table);
+      }
+      console.log("Database tables created or already exist");
+      await checkAndInitializeDefaultUsers();
+    } catch (err) {
+      console.error("Error initializing database:", err);
+    }
   }
-}
+
 
 initializeDatabase();
 
@@ -443,7 +442,13 @@ app.post("/update-quarterly-bonus-status", (req, res) => {
   });
 });
 
-const PORT = 3000;
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+const PORT = process.env.PORT || 3000;
+
+initializeDatabase().then(() => {
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
+}).catch(err => {
+  console.error("Failed to initialize database:", err);
+  process.exit(1);
 });
