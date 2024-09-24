@@ -115,7 +115,7 @@
                 const password = document.getElementById("password").value;
 
                 try {
-                    const response = await fetch("/login", {
+                    const response = await fetch("${API_BASE_URL}/login", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ username, password }),
@@ -154,11 +154,14 @@
                 }
 
                 try {
-                    const response = await fetch("/change-password", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ username, newPassword }),
-                    });
+                    const response = await fetch(
+                        "${API_BASE_URL}/change-password",
+                        {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ username, newPassword }),
+                        },
+                    );
 
                     const data = await response.json();
 
