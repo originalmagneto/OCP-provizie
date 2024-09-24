@@ -84,6 +84,34 @@ app.post("/login", async (req, res) => {
   }
 });
 
+app.post("/logout", (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      return res.status(500).json({ success: false, message: "Logout failed" });
+    }
+    res.json({ success: true });
+  });
+});
+
+app.post("/change-password", checkAuth, async (req, res) => {
+  const { newPassword } = req.body;
+  const username = req.session.user.username;
+
+  try {
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await pool.query(
+      "UPDATE users SET password = $1, requirepasswordchange = false WHERE username = $2",
+      [hashedPassword, username],
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Change password error:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to change password" });
+  }
+});
+
 app.get("/", checkAuth, (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
