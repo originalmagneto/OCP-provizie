@@ -3,8 +3,22 @@ const path = require("path");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
 const { Pool } = require('pg');
+const dotenv = require('dotenv');
+
+dotenv.config();
 
 const app = express();
+
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname)));
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
+  }
+});
 
 // Test database connection
 pool.query('SELECT NOW()', (err, res) => {
@@ -24,70 +38,57 @@ pool.query('SELECT NOW()', (err, res) => {
       database: pool.options.database,
       port: pool.options.port
     });
-  }
-});
-
-const dotenv = require('dotenv');
-dotenv.config();
-
-app.use(cors());
-app.use(express.json());
-app.use(express.static(path.join(__dirname)));
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  }
-});
-
-pool.connect((err) => {
-  if (err) {
-    console.error("Error connecting to database", err);
-  } else {
-    console.log("Database connected");
     initializeDatabase();
   }
 });
 
-function initializeDatabase() {
-  pool.query(
-    `CREATE TABLE IF NOT EXISTS users (
-      username TEXT PRIMARY KEY,
-      password TEXT,
-      requirePasswordChange BOOLEAN
-    )`,
-      (err) => {
-        if (err) {
-          console.error("Error creating users table:", err);
-        } else {
-          console.log("Users table created or already exists");
-          checkAndInitializeDefaultUsers();
-        }
-      },
-    );
+```javascript
+async function initializeDatabase() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        username TEXT PRIMARY KEY,
+        password TEXT,
+        requirePasswordChange BOOLEAN
+      )
+    `);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS invoices (
+        id SERIAL PRIMARY KEY,
+        year INTEGER,
+        month INTEGER,
+        clientName TEXT,
+        amount REAL,
+        referrer TEXT,
+        bonusPercentage REAL,
+        paid BOOLEAN,
+        createdBy TEXT
+      )
+    `);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS clients (
+        id SERIAL PRIMARY KEY,
+        name TEXT UNIQUE
+      )
+    `);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS quarterly_bonus_status (
+        referrer TEXT,
+        year INTEGER,
+        quarter INTEGER,
+        paid BOOLEAN,
+        PRIMARY KEY (referrer, year, quarter)
+      )
+    `);
+    console.log("Database tables created or already exist");
+    await checkAndInitializeDefaultUsers();
+  } catch (err) {
+    console.error("Error initializing database:", err);
+  }
+}
 
-    // Create invoices table if it doesn't exist
-    db.run(
-      `CREATE TABLE IF NOT EXISTS invoices (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            year INTEGER,
-            month INTEGER,
-            clientName TEXT,
-            amount REAL,
-            referrer TEXT,
-            bonusPercentage REAL,
-            paid INTEGER,
-            createdBy TEXT
-        )`,
-      (err) => {
-        if (err) {
-          console.error("Error creating invoices table:", err);
-        } else {
-          console.log("Invoices table created or already exists");
-        }
-      },
-    );
+initializeDatabase();
+
 
     // Create clients table if it doesn't exist
 
@@ -127,48 +128,32 @@ function initializeDatabase() {
   });
 }
 
-function checkAndInitializeDefaultUsers() {
+async function checkAndInitializeDefaultUsers() {
   const defaultUsers = [
-    {
-      username: "AdvokatiCHZ",
-      password: "default123",
-      requirePasswordChange: 1,
-    },
-    { username: "MKMs", password: "default123", requirePasswordChange: 1 },
-    { username: "Contax", password: "default123", requirePasswordChange: 1 },
+    { username: "AdvokatiCHZ", password: "default123", requirePasswordChange: true },
+    { username: "MKMs", password: "default123", requirePasswordChange: true },
+    { username: "Contax", password: "default123", requirePasswordChange: true },
   ];
 
-  db.all("SELECT username FROM users", [], (err, rows) => {
-    if (err) {
-      console.error("Error checking existing users:", err);
-      return;
-    }
+  try {
+    const result = await pool.query("SELECT username FROM users");
+    const existingUsernames = result.rows.map(row => row.username);
 
-    const existingUsernames = rows.map((row) => row.username);
-
-    defaultUsers.forEach((user) => {
+    for (const user of defaultUsers) {
       if (!existingUsernames.includes(user.username)) {
-        bcrypt.hash(user.password, 10, (err, hash) => {
-          if (err) {
-            console.error("Error hashing password:", err);
-          } else {
-            db.run(
-              "INSERT INTO users (username, password, requirePasswordChange) VALUES (?, ?, ?)",
-              [user.username, hash, user.requirePasswordChange],
-              (err) => {
-                if (err) {
-                  console.error(`Error inserting user ${user.username}:`, err);
-                } else {
-                  console.log(`User ${user.username} initialized`);
-                }
-              },
-            );
-          }
-        });
+        const hashedPassword = await bcrypt.hash(user.password, 10);
+        await pool.query(
+          "INSERT INTO users (username, password, requirePasswordChange) VALUES ($1, $2, $3)",
+          [user.username, hashedPassword, user.requirePasswordChange]
+        );
+        console.log(`User ${user.username} initialized`);
       }
-    });
-  });
+    }
+  } catch (err) {
+    console.error("Error initializing default users:", err);
+  }
 }
+
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "login.html"));
