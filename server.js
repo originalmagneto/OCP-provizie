@@ -6,6 +6,15 @@ const { Pool } = require('pg');
 
 const app = express();
 
+// Test database connection
+pool.query('SELECT NOW()', (err, res) => {
+  if (err) {
+    console.error('Error connecting to the database:', err);
+  } else {
+    console.log('Successfully connected to the database');
+  }
+});
+
 const dotenv = require('dotenv');
 dotenv.config();
 
@@ -26,9 +35,6 @@ pool.connect((err) => {
   } else {
     console.log("Database connected");
     initializeDatabase();
-
-        // The pool
-
   }
 });
 
@@ -72,6 +78,9 @@ function initializeDatabase() {
     );
 
     // Create clients table if it doesn't exist
+
+
+
     db.run(
       `CREATE TABLE IF NOT EXISTS clients (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -161,6 +170,10 @@ app.post("/login", (req, res) => {
     if (err) {
       console.error("Database error:", err);
       return res.status(500).json({ success: false, message: "Server error" });
+
+      // Verify that the DATABASE_URL environment variable is correctly set
+      // Check the Render dashboard under the Environment tab if issues persist
+
     }
     if (!user) {
       console.log("User not found:", username);
@@ -217,21 +230,32 @@ app.get("/get-invoices", (req, res) => {
   pool.query("SELECT * FROM invoices", (err, result) => {
     if (err) {
       console.error("Error fetching invoices:", err);
-      return res.status(500).json({ error: "Internal server error" });
+      return res.status(500).json({ error: "Internal server error", details: err.message });
     }
+    console.log(`Successfully fetched ${result.rows.length} invoices`);
     res.json(result.rows);
   });
 });
 
-app.get("/get-client-names", (req, res) => {
-  db.all("SELECT DISTINCT clientName FROM invoices", (err, rows) => {
-    if (err) {
-      console.error("Error fetching client names:", err);
-      return res.status(500).json({ error: "Internal server error" });
-    }
-    const clientNames = rows.map((row) => row.clientName);
+app.get("/get-client-names", async (req, res) => {
+  console.log("Fetching client names...");
+  try {
+    const startTime = Date.now();
+    const result = await pool.query("SELECT DISTINCT clientName FROM invoices");
+    const clientNames = result.rows.map(row => row.clientName);
+    const duration = Date.now() - startTime;
+    console.log(`Successfully fetched ${clientNames.length} client names in ${duration}ms`);
     res.json(clientNames);
-  });
+  } catch (err) {
+    console.error("Error fetching client names:", err);
+    console.error("Stack trace:", err.stack);
+    res.status(500).json({
+      error: "Internal server error",
+      details: err.message,
+      timestamp: new Date().toISOString(),
+      endpoint: "/get-client-names"
+    });
+  }
 });
 
 app.post("/save-invoice", (req, res) => {
@@ -391,21 +415,22 @@ app.delete("/delete-invoice/:id", (req, res) => {
   );
 });
 
-app.get("/quarterly-bonus-status", (req, res) => {
-  db.all("SELECT * FROM quarterly_bonus_status", [], (err, rows) => {
-    if (err) {
-      console.error("Error fetching quarterly bonus status:", err);
-      return res.status(500).json({ error: "Internal server error" });
-    }
+app.get("/quarterly-bonus-status", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT * FROM quarterly_bonus_status");
     const status = {};
-    rows.forEach((row) => {
+    result.rows.forEach((row) => {
       if (!status[row.referrer]) {
         status[row.referrer] = {};
       }
-      status[row.referrer][`${row.year}-${row.quarter}`] = row.paid === 1;
+      status[row.referrer][`${row.year}-${row.quarter}`] = row.paid === true;
     });
+    console.log(`Successfully fetched quarterly bonus status for ${Object.keys(status).length} referrers`);
     res.json(status);
-  });
+  } catch (err) {
+    console.error("Error fetching quarterly bonus status:", err);
+    res.status(500).json({ error: "Internal server error", details: err.message });
+  }
 });
 
 app.post("/update-quarterly-bonus-status", (req, res) => {

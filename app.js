@@ -3,65 +3,56 @@ let invoices = [];
 let clientNames = [];
 let quarterlyBonusPaidStatus = {};
 const currentUser = localStorage.getItem("currentUser");
-
+const API_BASE_URL = "https://ocp-provizie.onrender.com";
 // Function to fetch invoices from the server
-async function fetchInvoices() {
-  try {
-    const response = await fetch("http://localhost:3000/get-invoices");
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(
-        `HTTP error! status: ${response.status}, message: ${errorData.message}, code: ${errorData.code}`,
-      );
-    }
-    const data = await response.json();
-    invoices = data.map((invoice) => ({
-      ...invoice,
-      paid: Boolean(invoice.paid),
-    }));
-    renderInvoiceList();
-    renderSummaryTables();
-  } catch (error) {
-    console.error("Error fetching invoices:", error);
-    alert(`Failed to fetch invoices. ${error.message}`);
+try {
+  const response = await fetch(`${API_BASE_URL}/get-invoices`);
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.error}, details: ${errorData.details}`);
   }
+  const data = await response.json();
+  invoices = data.map((invoice) => ({
+    ...invoice,
+    paid: Boolean(invoice.paid),
+  }));
+  renderInvoiceList();
+  renderSummaryTables();
+} catch (error) {
+  console.error("Error fetching invoices:", error);
+  alert(`Failed to fetch invoices. ${error.message}`);
+}
 }
 
-// Function to fetch client names from the server
 async function fetchClientNames() {
-  try {
-    const response = await fetch("http://localhost:3000/get-client-names");
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(
-        `HTTP error! status: ${response.status}, message: ${errorData.message}, code: ${errorData.code}`,
-      );
-    }
-    clientNames = await response.json();
-    updateClientNameSuggestions();
-  } catch (error) {
-    console.error("Error fetching client names:", error);
-    alert(`Failed to fetch client names. ${error.message}`);
+try {
+  const response = await fetch(`${API_BASE_URL}/get-client-names");
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.error}, details: ${errorData.details}`);
   }
+  clientNames = await response.json();
+  updateClientNameSuggestions();
+} catch (error) {
+  console.error("Error fetching client names:", error);
+  alert(`Failed to fetch client names. ${error.message}`);
+}
 }
 
-// Function to fetch quarterly bonus paid status
 async function fetchQuarterlyBonusPaidStatus() {
-  try {
-    const response = await fetch(
-      `http://localhost:3000/quarterly-bonus-status`,
-    );
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    quarterlyBonusPaidStatus = await response.json();
-  } catch (error) {
-    console.error("Error fetching quarterly bonus paid status:", error);
-    alert(
-      "Failed to fetch quarterly bonus paid status. Please try again later.",
-    );
+try {
+  const response = await fetch(`${API_BASE_URL}/quarterly-bonus-status`);
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.error}, details: ${errorData.details}`);
   }
+  quarterlyBonusPaidStatus = await response.json();
+} catch (error) {
+  console.error("Error fetching quarterly bonus paid status:", error);
+  alert(`Failed to fetch quarterly bonus paid status. ${error.message}`);
 }
+}
+
 
 // Function to handle form submission
 async function handleFormSubmit(event) {
@@ -95,7 +86,7 @@ async function handleFormSubmit(event) {
   }
 
   try {
-    const response = await fetch("http://localhost:3000/save-invoice", {
+    const response = await fetch(`${API_BASE_URL}/get-invoices`);
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -114,7 +105,7 @@ async function handleFormSubmit(event) {
 
     if (newInvoice.clientName && !clientNames.includes(newInvoice.clientName)) {
       const clientResponse = await fetch(
-        "http://localhost:3000/save-client-name",
+        "${API_BASE_URL}/save-client-name",
         {
           method: "POST",
           headers: {
@@ -343,7 +334,7 @@ async function updateInvoice(event, id) {
   };
 
   try {
-    const response = await fetch(`http://localhost:3000/update-invoice/${id}`, {
+    const response = await fetch(`${API_BASE_URL}/update-invoice/${id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -372,7 +363,7 @@ async function deleteInvoice(id) {
 
   try {
     const response = await fetch(
-      `http://localhost:3000/delete-invoice/${id}?createdBy=${currentUser}`,
+      `${API_BASE_URL}/delete-invoice/${id}?createdBy=${currentUser}`,
       {
         method: "DELETE",
       },
@@ -409,7 +400,7 @@ async function updateQuarterlyBonusPaidStatus(referrer, year, quarter, isPaid) {
 
   try {
     const response = await fetch(
-      "http://localhost:3000/update-quarterly-bonus-status",
+      "${API_BASE_URL}/update-quarterly-bonus-status",
       {
         method: "POST",
         headers: {
@@ -444,7 +435,7 @@ async function updateQuarterlyBonusPaidStatus(referrer, year, quarter, isPaid) {
 async function updatePaidStatus(id, paid) {
   console.log(`Updating paid status for invoice ${id} to ${paid}`);
   try {
-    const response = await fetch(`http://localhost:3000/update-invoice/${id}`, {
+    const response = await fetch(`${API_BASE_URL}/update-invoice/${id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
