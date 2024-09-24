@@ -7,6 +7,7 @@ const path = require("path");
 
 const app = express();
 
+// Middleware
 app.use(cors());
 app.use(express.json());
 app.use(
@@ -18,53 +19,10 @@ app.use(
   }),
 );
 
-// Middleware to check if user is logged in
-const checkAuth = (req, res, next) => {
-  if (!req.session || !req.session.user) {
-    return res.redirect("/login");
-  }
-  next();
-};
-
-// Use this middleware for protected routes
-app.use("/api", checkAuth); // Protect all routes under /api
-app.get("/", checkAuth, (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
-// Middleware to check if user is logged in
-const checkAuth = (req, res, next) => {
-  if (!req.session || !req.session.user) {
-    return res.redirect("/login");
-  }
-  next();
-};
-
-app.use(
-  session({
-    secret: "your-secret-key",
-    resave: false,
-    saveUninitialized: true,
-    cookie: { secure: process.env.NODE_ENV === "production" },
-  }),
-);
-
-// Protect all routes except login
-app.use((req, res, next) => {
-  if (req.path === "/login") {
-    return next();
-  }
-  checkAuth(req, res, next);
-});
-
-const path = require("path");
-
+// Serve static files
 app.use(express.static(path.join(__dirname, "public")));
 
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
+// Database connection
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
@@ -82,77 +40,18 @@ pool.query("SELECT NOW()", (err, res) => {
   }
 });
 
-async function initializeDatabase() {
-  const tables = [
-    "CREATE TABLE IF NOT EXISTS users (" +
-      "username TEXT PRIMARY KEY," +
-      "password TEXT," +
-      "requirePasswordChange BOOLEAN" +
-      ")",
-    "CREATE TABLE IF NOT EXISTS invoices (" +
-      "id SERIAL PRIMARY KEY," +
-      "year INTEGER," +
-      "month INTEGER," +
-      "clientName TEXT," +
-      "amount REAL," +
-      "referrer TEXT," +
-      "bonusPercentage REAL," +
-      "paid BOOLEAN," +
-      "createdBy TEXT" +
-      ")",
-    "CREATE TABLE IF NOT EXISTS clients (" +
-      "id SERIAL PRIMARY KEY," +
-      "name TEXT UNIQUE" +
-      ")",
-    "CREATE TABLE IF NOT EXISTS quarterly_bonus_status (" +
-      "referrer TEXT," +
-      "year INTEGER," +
-      "quarter INTEGER," +
-      "paid BOOLEAN," +
-      "PRIMARY KEY (referrer, year, quarter)" +
-      ")",
-  ];
-
-  try {
-    for (const table of tables) {
-      await pool.query(table);
-    }
-    console.log("Database tables created or already exist");
-    await checkAndInitializeDefaultUsers();
-  } catch (err) {
-    console.error("Error initializing database:", err);
+// Authentication middleware
+const checkAuth = (req, res, next) => {
+  if (!req.session || !req.session.user) {
+    return res.redirect("/login");
   }
-}
+  next();
+};
 
-async function checkAndInitializeDefaultUsers() {
-  const defaultUsers = [
-    {
-      username: "AdvokatiCHZ",
-      password: "default123",
-      requirePasswordChange: true,
-    },
-    { username: "MKMs", password: "default123", requirePasswordChange: true },
-    { username: "Contax", password: "default123", requirePasswordChange: true },
-  ];
-
-  try {
-    const result = await pool.query("SELECT username FROM users");
-    const existingUsernames = result.rows.map((row) => row.username);
-
-    for (const user of defaultUsers) {
-      if (!existingUsernames.includes(user.username)) {
-        const hashedPassword = await bcrypt.hash(user.password, 10);
-        await pool.query(
-          "INSERT INTO users (username, password, requirePasswordChange) VALUES ($1, $2, $3)",
-          [user.username, hashedPassword, user.requirePasswordChange],
-        );
-        console.log(`User ${user.username} initialized`);
-      }
-    }
-  } catch (err) {
-    console.error("Error initializing default users:", err);
-  }
-}
+// Routes
+app.get("/login", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "login.html"));
+});
 
 app.post("/login", async (req, res) => {
   const { username, password } = req.body;
@@ -207,7 +106,14 @@ app.post("/change-password", async (req, res) => {
   }
 });
 
-app.get("/get-invoices", async (req, res) => {
+// Protected routes
+app.use("/api", checkAuth);
+
+app.get("/", checkAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
+app.get("/api/get-invoices", async (req, res) => {
   try {
     const result = await pool.query("SELECT * FROM invoices");
     res.json(result.rows);
@@ -217,7 +123,7 @@ app.get("/get-invoices", async (req, res) => {
   }
 });
 
-app.get("/get-client-names", async (req, res) => {
+app.get("/api/get-client-names", async (req, res) => {
   try {
     const result = await pool.query("SELECT DISTINCT clientName FROM invoices");
     const clientNames = result.rows.map((row) => row.clientName);
@@ -228,7 +134,7 @@ app.get("/get-client-names", async (req, res) => {
   }
 });
 
-app.post("/save-invoice", async (req, res) => {
+app.post("/api/save-invoice", async (req, res) => {
   const {
     year,
     month,
@@ -261,7 +167,7 @@ app.post("/save-invoice", async (req, res) => {
   }
 });
 
-app.post("/save-client-name", async (req, res) => {
+app.post("/api/save-client-name", async (req, res) => {
   const { clientName } = req.body;
   try {
     await pool.query(
@@ -275,7 +181,7 @@ app.post("/save-client-name", async (req, res) => {
   }
 });
 
-app.put("/update-invoice/:id", async (req, res) => {
+app.put("/api/update-invoice/:id", async (req, res) => {
   const { id } = req.params;
   const {
     paid,
@@ -287,7 +193,7 @@ app.put("/update-invoice/:id", async (req, res) => {
     bonusPercentage,
     createdBy,
   } = req.body;
-  const currentUser = req.body.currentUser;
+  const currentUser = req.session.user.username;
 
   try {
     const checkResult = await pool.query(
@@ -300,10 +206,12 @@ app.put("/update-invoice/:id", async (req, res) => {
         .json({ success: false, message: "Invoice not found" });
     }
     if (checkResult.rows[0].referrer !== currentUser) {
-      return res.status(403).json({
-        success: false,
-        message: "Not authorized to update this invoice",
-      });
+      return res
+        .status(403)
+        .json({
+          success: false,
+          message: "Not authorized to update this invoice",
+        });
     }
 
     let query, params;
@@ -343,20 +251,22 @@ app.put("/update-invoice/:id", async (req, res) => {
   }
 });
 
-app.delete("/delete-invoice/:id", async (req, res) => {
+app.delete("/api/delete-invoice/:id", async (req, res) => {
   const { id } = req.params;
-  const { createdBy } = req.query;
+  const currentUser = req.session.user.username;
 
   try {
     const result = await pool.query(
       "DELETE FROM invoices WHERE id = $1 AND createdBy = $2",
-      [id, createdBy],
+      [id, currentUser],
     );
     if (result.rowCount === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "Invoice not found or not authorized to delete",
-      });
+      return res
+        .status(404)
+        .json({
+          success: false,
+          message: "Invoice not found or not authorized to delete",
+        });
     }
     res.json({ success: true });
   } catch (err) {
@@ -367,7 +277,7 @@ app.delete("/delete-invoice/:id", async (req, res) => {
   }
 });
 
-app.get("/quarterly-bonus-status", async (req, res) => {
+app.get("/api/quarterly-bonus-status", async (req, res) => {
   try {
     const result = await pool.query("SELECT * FROM quarterly_bonus_status");
     const status = {};
@@ -384,7 +294,7 @@ app.get("/quarterly-bonus-status", async (req, res) => {
   }
 });
 
-app.post("/update-quarterly-bonus-status", async (req, res) => {
+app.post("/api/update-quarterly-bonus-status", async (req, res) => {
   const { referrer, year, quarter, isPaid } = req.body;
   const query = `INSERT INTO quarterly_bonus_status (referrer, year, quarter, paid)
                  VALUES ($1, $2, $3, $4)
@@ -398,15 +308,9 @@ app.post("/update-quarterly-bonus-status", async (req, res) => {
   }
 });
 
+// Server startup
 const PORT = process.env.PORT || 3000;
 
-initializeDatabase()
-  .then(() => {
-    app.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`);
-    });
-  })
-  .catch((err) => {
-    console.error("Failed to initialize database:", err);
-    process.exit(1);
-  });
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
