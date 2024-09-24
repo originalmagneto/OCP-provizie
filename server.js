@@ -49,6 +49,11 @@ const checkAuth = (req, res, next) => {
 };
 
 // Routes
+
+app.get("/login", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "login.html"));
+});
+
 app.get("/login", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
@@ -206,12 +211,10 @@ app.put("/api/update-invoice/:id", async (req, res) => {
         .json({ success: false, message: "Invoice not found" });
     }
     if (checkResult.rows[0].referrer !== currentUser) {
-      return res
-        .status(403)
-        .json({
-          success: false,
-          message: "Not authorized to update this invoice",
-        });
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized to update this invoice",
+      });
     }
 
     let query, params;
@@ -261,12 +264,10 @@ app.delete("/api/delete-invoice/:id", async (req, res) => {
       [id, currentUser],
     );
     if (result.rowCount === 0) {
-      return res
-        .status(404)
-        .json({
-          success: false,
-          message: "Invoice not found or not authorized to delete",
-        });
+      return res.status(404).json({
+        success: false,
+        message: "Invoice not found or not authorized to delete",
+      });
     }
     res.json({ success: true });
   } catch (err) {
