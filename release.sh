@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e  # Exit immediately if a command exits with a non-zero status.
+
 # Function to increment version
 increment_version() {
     local version=$1
@@ -15,75 +17,72 @@ increment_version() {
     echo "${ADDR[*]}" | sed 's/ /./g'
 }
 
-# Ensure we're on the main branch
-git checkout main
+echo "Ensuring we're on the main branch..."
+git checkout main || { echo "Failed to checkout main branch"; exit 1; }
 
-# Pull the latest changes
-git pull origin main
+echo "Pulling latest changes..."
+git pull origin main || { echo "Failed to pull latest changes"; exit 1; }
 
-# Get the latest tag
+echo "Getting the latest tag..."
 LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null)
 
 if [[ -z "$LATEST_TAG" ]]; then
     NEW_VERSION="v0.0.1"
 else
-    # Remove 'v' prefix for version calculation
     VERSION_NUMBER=${LATEST_TAG#v}
     NEW_VERSION="v$(increment_version $VERSION_NUMBER 2)"
 fi
 
 echo "Preparing release $NEW_VERSION"
 
-# Generate changelog
+echo "Generating changelog..."
 CHANGELOG=$(git log $(git describe --tags --abbrev=0 2>/dev/null)..HEAD --pretty=format:"- %s")
 
-# Check if there are any changes to commit
 if [[ -z $(git status -s) ]]; then
     echo "No changes to commit. Aborting release."
     exit 1
 fi
 
-# Prompt for a custom comment
 echo "Please enter a comment describing the nature of the changes:"
 read -e CUSTOM_COMMENT
 
-# Add all changes
-git add .
+echo "Adding all changes..."
+git add . || { echo "Failed to add changes"; exit 1; }
 
-# Commit changes
+echo "Committing changes..."
 git commit -m "Release $NEW_VERSION
 
 $CUSTOM_COMMENT
 
 Changelog:
-$CHANGELOG"
+$CHANGELOG" || { echo "Failed to commit changes"; exit 1; }
 
-# Create a new tag
+echo "Creating new tag..."
 git tag -a $NEW_VERSION -m "Release $NEW_VERSION
 
 $CUSTOM_COMMENT
 
 Changelog:
-$CHANGELOG"
+$CHANGELOG" || { echo "Failed to create tag"; exit 1; }
 
-# Push changes and tags to GitHub
-git push origin main
-git push origin $NEW_VERSION
+echo "Pushing changes and tags to GitHub..."
+git push origin main || { echo "Failed to push to main"; exit 1; }
+git push origin $NEW_VERSION || { echo "Failed to push tag"; exit 1; }
 
-# Create GitHub release
+echo "Creating GitHub release..."
 gh release create $NEW_VERSION -t "Release $NEW_VERSION" -n "$CUSTOM_COMMENT
 
 Changelog:
-$CHANGELOG"
+$CHANGELOG" || { echo "Failed to create GitHub release"; exit 1; }
 
 echo "Release $NEW_VERSION has been created and pushed to GitHub"
 
-# Update package.json version (if it exists)
 if [[ -f "package.json" ]]; then
-    npm version $NEW_VERSION --no-git-tag-version
-    git add package.json
-    git commit -m "Bump version in package.json to $NEW_VERSION"
-    git push origin main
+    echo "Updating package.json version..."
+    npm version $NEW_VERSION --no-git-tag-version || { echo "Failed to update package.json version"; exit 1; }
+    git add package.json || { echo "Failed to add package.json"; exit 1; }
+    git commit -m "Bump version in package.json to $NEW_VERSION" || { echo "Failed to commit package.json changes"; exit 1; }
+    git push origin main || { echo "Failed to push package.json changes"; exit 1; }
 fi
 
 echo "Release process completed successfully!"
