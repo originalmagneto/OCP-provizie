@@ -24,20 +24,12 @@ const pool = new Pool({
 pool.query('SELECT NOW()', (err, res) => {
   if (err) {
     console.error('Error connecting to the database:', err);
-    console.error('Database connection error details:', {
-      message: err.message,
-      stack: err.stack,
-      code: err.code,
-      connectionString: process.env.DATABASE_URL ? 'Set' : 'Not set'
-    });
+    console.error('Database URL:', process.env.DATABASE_URL);
   } else {
     console.log('Successfully connected to the database');
-    console.log('Database connection details:', {
-      user: pool.options.user,
-      host: pool.options.host,
-      database: pool.options.database,
-      port: pool.options.port
-    });
+  }
+});
+
     initializeDatabase();
   }
 });
@@ -45,38 +37,93 @@ pool.query('SELECT NOW()', (err, res) => {
 ```javascript
   async function initializeDatabase() {
     const tables = [
-      `CREATE TABLE IF NOT EXISTS users (
-        username TEXT PRIMARY KEY,
-        password TEXT,
-        requirePasswordChange BOOLEAN
-      )`,
-      `CREATE TABLE IF NOT EXISTS invoices (
-        id SERIAL PRIMARY KEY,
-        year INTEGER,
-        month INTEGER,
-        clientName TEXT,
-        amount REAL,
-        referrer TEXT,
-        bonusPercentage REAL,
-        paid BOOLEAN,
-        createdBy TEXT
-      )`,
-      `CREATE TABLE IF NOT EXISTS clients (
-        id SERIAL PRIMARY KEY,
-        name TEXT UNIQUE
-      )`,
-      `CREATE TABLE IF NOT EXISTS quarterly_bonus_status (
-        referrer TEXT,
-        year INTEGER,
-        quarter INTEGER,
-        paid BOOLEAN,
-        PRIMARY KEY (referrer, year, quarter)
-      )`
+      "CREATE TABLE IF NOT EXISTS users (" +
+        "username TEXT PRIMARY KEY," +
+        "password TEXT," +
+        "requirePasswordChange BOOLEAN" +
+      ")",
+      "CREATE TABLE IF NOT EXISTS invoices (" +
+        "id SERIAL PRIMARY KEY," +
+        "year INTEGER," +
+        "month INTEGER," +
+        "clientName TEXT," +
+        "amount REAL," +
+        "referrer TEXT," +
+        "bonusPercentage REAL," +
+        "paid BOOLEAN," +
+        "createdBy TEXT" +
+      ")",
+      "CREATE TABLE IF NOT EXISTS clients (" +
+        "id SERIAL PRIMARY KEY," +
+        "name TEXT UNIQUE" +
+      ")",
+      "CREATE TABLE IF NOT EXISTS quarterly_bonus_status (" +
+        "referrer TEXT," +
+        "year INTEGER," +
+        "quarter INTEGER," +
+        "paid BOOLEAN," +
+        "PRIMARY KEY (referrer, year, quarter)" +
+      ")"
     ];
 
     try {
       for (const table of tables) {
         await pool.query(table);
+      }
+      console.log("Database tables created or already exist");
+      await checkAndInitializeDefaultUsers();
+    } catch (err) {
+      console.error("Error initializing database:", err);
+    }
+  }
+  async function executeSqlWithErrorLogging(sql, params = []) {
+    try {
+      const result = await pool.query(sql, params);
+      console.log(`Successfully executed query: ${sql.substring(0, 50)}...`);
+      return result;
+    } catch (error) {
+      console.error(`Error executing SQL: ${sql}`);
+      console.error('Error details:', error);
+      console.error('Stack trace:', error.stack);
+      throw error;
+    }
+  }
+
+  // Update initializeDatabase function to use executeSqlWithErrorLogging
+  async function initializeDatabase() {
+    const tables = [
+      "CREATE TABLE IF NOT EXISTS users (" +
+        "username TEXT PRIMARY KEY," +
+        "password TEXT," +
+        "requirePasswordChange BOOLEAN" +
+      ")",
+      "CREATE TABLE IF NOT EXISTS invoices (" +
+        "id SERIAL PRIMARY KEY," +
+        "year INTEGER," +
+        "month INTEGER," +
+        "clientName TEXT," +
+        "amount REAL," +
+        "referrer TEXT," +
+        "bonusPercentage REAL," +
+        "paid BOOLEAN," +
+        "createdBy TEXT" +
+      ")",
+      "CREATE TABLE IF NOT EXISTS clients (" +
+        "id SERIAL PRIMARY KEY," +
+        "name TEXT UNIQUE" +
+      ")",
+      "CREATE TABLE IF NOT EXISTS quarterly_bonus_status (" +
+        "referrer TEXT," +
+        "year INTEGER," +
+        "quarter INTEGER," +
+        "paid BOOLEAN," +
+        "PRIMARY KEY (referrer, year, quarter)" +
+      ")"
+    ];
+
+    try {
+      for (const table of tables) {
+        await executeSqlWithErrorLogging(table);
       }
       console.log("Database tables created or already exist");
       await checkAndInitializeDefaultUsers();
