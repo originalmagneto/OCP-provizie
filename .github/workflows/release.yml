@@ -31,29 +31,30 @@ jobs:
           git config --local user.name "GitHub Action"
           git add package-lock.json
           git diff --quiet && git diff --staged --quiet || git commit -m "Update package-lock.json"
-          - name: Create Release
-            env:
-              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-            run: |
-              # Get the current version
-              current_version=$(npm version --json | jq -r '."ocp-provizie-v3"')
 
-              # Function to increment patch version
-              increment_version() {
-                local version=$1
-                local current_patch=$(echo $version | cut -d. -f3)
-                local new_patch=$((current_patch + 1))
-                echo "${version%.*}.$new_patch"
-              }
+      - name: Create Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Get the current version
+          current_version=$(npm version --json | jq -r '."ocp-provizie-v3"')
 
-              # Check if the current version tag already exists
-              while git rev-parse $current_version >/dev/null 2>&1; do
-                echo "Version $current_version already exists, incrementing..."
-                current_version=$(increment_version $current_version)
-              done
+          # Function to increment patch version
+          increment_version() {
+            local version=$1
+            local current_patch=$(echo $version | cut -d. -f3)
+            local new_patch=$((current_patch + 1))
+            echo "${version%.*}.$new_patch"
+          }
 
-              # Set the new version
-              npm version $current_version -m "Bump version to %s"
+          # Check if the current version tag already exists
+          while git rev-parse $current_version >/dev/null 2>&1; do
+            echo "Version $current_version already exists, incrementing..."
+            current_version=$(increment_version $current_version)
+          done
 
-              git push --follow-tags
-              npm run release
+          # Set the new version
+          npm version $current_version -m "Bump version to %s"
+
+          git push --follow-tags
+          npm run release
