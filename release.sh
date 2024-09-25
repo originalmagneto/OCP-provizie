@@ -78,12 +78,9 @@ STRUCTURED_COMMENT=$(generate_structured_comment)
 
 echo "Structured comment for this release:"
 echo -e "$STRUCTURED_COMMENT"
-echo "Please review the above comment. Press Enter to use it, or type a custom comment:"
-read -e CUSTOM_COMMENT
 
-if [[ -z "$CUSTOM_COMMENT" ]]; then
-    CUSTOM_COMMENT="$STRUCTURED_COMMENT"
-fi
+# Remove interactive prompt and use the generated comment
+CUSTOM_COMMENT="$STRUCTURED_COMMENT"
 
 echo "Updating package-lock.json..."
 npm install --package-lock-only
