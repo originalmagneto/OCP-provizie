@@ -19,6 +19,9 @@ jobs:
         with:
           node-version: "14"
 
+      - name: Debug package.json
+        run: cat package.json
+
       - name: Install dependencies
         run: npm ci
 
