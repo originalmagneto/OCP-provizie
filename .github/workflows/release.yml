@@ -19,38 +19,23 @@ jobs:
         with:
           node-version: "14"
 
-      - name: Debug - List directory contents
-        run: ls -la
+        - name: Install dependencies
+          run: npm ci || npm install
 
-      - name: Debug - Print package.json contents
-        run: cat package.json
+        - name: Run tests
+          run: npm test
 
-      - name: Debug - Validate package.json
-        run: |
-          if jq empty package.json >/dev/null 2>&1; then
-            echo "package.json is valid JSON"
-          else
-            echo "package.json is not valid JSON"
-            jq empty package.json
-          fi
+        - name: Commit package-lock.json if changed
+          run: |
+            git config --local user.email "action@github.com"
+            git config --local user.name "GitHub Action"
+            git add package-lock.json
+            git diff --quiet && git diff --staged --quiet || git commit -m "Update package-lock.json"
 
-      - name: Debug - Print npm config
-        run: npm config list
-
-      - name: Debug - Print npm version
-        run: npm --version
-
-      - name: Install dependencies
-        run: |
-          npm ci || npm install
-
-      - name: Run tests
-        run: npm test
-
-      - name: Create Release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          npm version patch -m "Bump version to %s"
-          git push --follow-tags
-          npm run release
+        - name: Create Release
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          run: |
+            npm version patch -m "Bump version to %s"
+            git push --follow-tags
+            npm run release
