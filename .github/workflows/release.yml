@@ -1,9 +1,12 @@
-name: Automated Release
+name: Manual Release
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
+    inputs:
+      releaseType:
+        description: "Release type (patch, minor, major)"
+        required: true
+        default: "patch"
 
 jobs:
   release:
@@ -34,12 +37,7 @@ jobs:
       - name: Run Release Script
         env:
           GITHUB_TOKEN: ${{ secrets.PAT }}
+          RELEASE_TYPE: ${{ github.event.inputs.releaseType }}
         run: |
           chmod +x ./release.sh
           ./release.sh
-
-      - name: Push changes
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ secrets.PAT }}
-          branch: ${{ github.ref }}
