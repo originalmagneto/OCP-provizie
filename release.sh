@@ -17,26 +17,40 @@ increment_version() {
     echo "${ADDR[*]}" | sed 's/ /./g'
 }
 
-# Function to generate a recommended comment
-generate_recommended_comment() {
+# Function to generate a structured comment
+generate_structured_comment() {
     local changes=$(git diff --name-only HEAD)
-    local comment="This release includes the following changes:\n"
+    local comment="# Release Notes\n\n## Changes in this version:\n\n"
 
     if echo "$changes" | grep -q "server.js"; then
+        comment+="### Backend Changes\n"
         comment+="- Updates to server functionality\n"
+        comment+="- Improved API endpoints\n\n"
     fi
     if echo "$changes" | grep -q "app.js"; then
-        comment+="- Improvements to client-side application logic\n"
+        comment+="### Frontend Logic\n"
+        comment+="- Enhancements to client-side application logic\n"
+        comment+="- Improved user interactions\n\n"
     fi
     if echo "$changes" | grep -q "index.html"; then
+        comment+="### User Interface\n"
         comment+="- Updates to the main page structure\n"
+        comment+="- Improved HTML semantics\n\n"
     fi
     if echo "$changes" | grep -q "styles.css"; then
-        comment+="- Enhancements to the application's visual styling\n"
+        comment+="### Visual Styling\n"
+        comment+="- Enhancements to the application's visual design\n"
+        comment+="- Improved responsiveness and layout\n\n"
     fi
     if echo "$changes" | grep -q "package.json"; then
+        comment+="### Dependencies\n"
         comment+="- Updates to project dependencies\n"
+        comment+="- Potential performance improvements\n\n"
     fi
+
+    comment+="## Additional Notes\n"
+    comment+="- Please report any issues or bugs you encounter\n"
+    comment+="- For more details, see the full changelog below\n"
 
     echo -e "$comment"
 }
@@ -67,15 +81,15 @@ if [[ -z $(git status -s) ]]; then
     exit 1
 fi
 
-RECOMMENDED_COMMENT=$(generate_recommended_comment)
+STRUCTURED_COMMENT=$(generate_structured_comment)
 
-echo "Recommended comment for this release:"
-echo -e "$RECOMMENDED_COMMENT"
-echo "Please enter a comment describing the nature of the changes (or press Enter to use the recommended comment):"
+echo "Structured comment for this release:"
+echo -e "$STRUCTURED_COMMENT"
+echo "Please review the above comment. Press Enter to use it, or type a custom comment:"
 read -e CUSTOM_COMMENT
 
 if [[ -z "$CUSTOM_COMMENT" ]]; then
-    CUSTOM_COMMENT="$RECOMMENDED_COMMENT"
+    CUSTOM_COMMENT="$STRUCTURED_COMMENT"
 fi
 
 echo "Adding all changes..."
@@ -105,7 +119,7 @@ echo "Creating GitHub release..."
 if command -v gh &> /dev/null; then
     gh release create $NEW_VERSION -t "Release $NEW_VERSION" -n "$CUSTOM_COMMENT
 
-Changelog:
+## Full Changelog:
 $CHANGELOG" || { echo "Failed to create GitHub release using gh CLI"; exit 1; }
 else
     echo "GitHub CLI not found. Pushing tag only."
