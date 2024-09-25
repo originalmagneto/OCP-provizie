@@ -17,6 +17,30 @@ increment_version() {
     echo "${ADDR[*]}" | sed 's/ /./g'
 }
 
+# Function to generate a recommended comment
+generate_recommended_comment() {
+    local changes=$(git diff --name-only HEAD)
+    local comment="This release includes the following changes:\n"
+
+    if echo "$changes" | grep -q "server.js"; then
+        comment+="- Updates to server functionality\n"
+    fi
+    if echo "$changes" | grep -q "app.js"; then
+        comment+="- Improvements to client-side application logic\n"
+    fi
+    if echo "$changes" | grep -q "index.html"; then
+        comment+="- Updates to the main page structure\n"
+    fi
+    if echo "$changes" | grep -q "styles.css"; then
+        comment+="- Enhancements to the application's visual styling\n"
+    fi
+    if echo "$changes" | grep -q "package.json"; then
+        comment+="- Updates to project dependencies\n"
+    fi
+
+    echo -e "$comment"
+}
+
 echo "Ensuring we're on the main branch..."
 git checkout main || { echo "Failed to checkout main branch"; exit 1; }
 
@@ -43,8 +67,16 @@ if [[ -z $(git status -s) ]]; then
     exit 1
 fi
 
-echo "Please enter a comment describing the nature of the changes:"
+RECOMMENDED_COMMENT=$(generate_recommended_comment)
+
+echo "Recommended comment for this release:"
+echo -e "$RECOMMENDED_COMMENT"
+echo "Please enter a comment describing the nature of the changes (or press Enter to use the recommended comment):"
 read -e CUSTOM_COMMENT
+
+if [[ -z "$CUSTOM_COMMENT" ]]; then
+    CUSTOM_COMMENT="$RECOMMENDED_COMMENT"
+fi
 
 echo "Adding all changes..."
 git add . || { echo "Failed to add changes"; exit 1; }
@@ -70,10 +102,15 @@ git push origin main || { echo "Failed to push to main"; exit 1; }
 git push origin $NEW_VERSION || { echo "Failed to push tag"; exit 1; }
 
 echo "Creating GitHub release..."
-gh release create $NEW_VERSION -t "Release $NEW_VERSION" -n "$CUSTOM_COMMENT
+if command -v gh &> /dev/null; then
+    gh release create $NEW_VERSION -t "Release $NEW_VERSION" -n "$CUSTOM_COMMENT
 
 Changelog:
-$CHANGELOG" || { echo "Failed to create GitHub release"; exit 1; }
+$CHANGELOG" || { echo "Failed to create GitHub release using gh CLI"; exit 1; }
+else
+    echo "GitHub CLI not found. Pushing tag only."
+    echo "Please create the release on GitHub manually."
+fi
 
 echo "Release $NEW_VERSION has been created and pushed to GitHub"
 
