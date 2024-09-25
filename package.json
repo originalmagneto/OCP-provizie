@@ -1,6 +1,6 @@
 {
   "name": "ocp-provizie-v3",
-  "version": "0.0.258",
+  "version": "0.0.259",
   "description": "Invoice Earnings Calculator",
   "main": "server.js",
   "scripts": {
