@@ -19,7 +19,10 @@ jobs:
         with:
           node-version: "14"
 
-      - name: Debug package.json
+      - name: Debug - List directory contents
+        run: ls -la
+
+      - name: Debug - Print package.json contents
         run: cat package.json
 
       - name: Install dependencies
