@@ -31,41 +31,42 @@ jobs:
           git config --local user.name "GitHub Action"
           git add package-lock.json
           git diff --quiet && git diff --staged --quiet || git commit -m "Update package-lock.json"
-          - name: Create Release
-            env:
-              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-            run: |
-              # Get the current version from package.json
-              current_version=$(node -p "require('./package.json').version")
 
-              # Function to increment patch version
-              increment_version() {
-                local version=$1
-                local major=$(echo $version | cut -d. -f1)
-                local minor=$(echo $version | cut -d. -f2)
-                local patch=$(echo $version | cut -d. -f3)
-                local new_patch=$((patch + 1))
-                echo "$major.$minor.$new_patch"
-              }
+      - name: Create Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Get the current version from package.json
+          current_version=$(node -p "require('./package.json').version")
 
-              # Check if the current version tag already exists and increment if necessary
-              while git rev-parse v$current_version >/dev/null 2>&1; do
-                echo "Version $current_version already exists, incrementing..."
-                current_version=$(increment_version $current_version)
-              done
+          # Function to increment patch version
+          increment_version() {
+            local version=$1
+            local major=$(echo $version | cut -d. -f1)
+            local minor=$(echo $version | cut -d. -f2)
+            local patch=$(echo $version | cut -d. -f3)
+            local new_patch=$((patch + 1))
+            echo "$major.$minor.$new_patch"
+          }
 
-              # Set the new version
-              npm version $current_version -m "Bump version to %s" --no-git-tag-version
+          # Check if the current version tag already exists and increment if necessary
+          while git rev-parse v$current_version >/dev/null 2>&1; do
+            echo "Version $current_version already exists, incrementing..."
+            current_version=$(increment_version $current_version)
+          done
 
-              # Commit the new version
-              git config --local user.email "action@github.com"
-              git config --local user.name "GitHub Action"
-              git add package.json package-lock.json
-              git commit -m "Bump version to $current_version"
+          # Set the new version
+          npm version $current_version -m "Bump version to %s" --no-git-tag-version
 
-              # Create and push the new tag
-              git tag v$current_version
-              git push --follow-tags
+          # Commit the new version
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add package.json package-lock.json
+          git commit -m "Bump version to $current_version"
 
-              # Run the release script
-              npm run release
+          # Create and push the new tag
+          git tag v$current_version
+          git push --follow-tags
+
+          # Run the release script
+          npm run release
