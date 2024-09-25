@@ -1,4 +1,3 @@
-
 set -e  # Exit immediately if a command exits with a non-zero status.
 
 # Function to increment version
@@ -89,6 +88,9 @@ fi
 echo "Updating package-lock.json..."
 npm install --package-lock-only
 
+echo "Updating package.json version..."
+npm version $NEW_VERSION --no-git-tag-version || { echo "Failed to update package.json version"; exit 1; }
+
 echo "Adding all changes..."
 git add . || { echo "Failed to add changes"; exit 1; }
 
@@ -124,11 +126,5 @@ else
 fi
 
 echo "Release $NEW_VERSION has been created and pushed to GitHub"
-
-echo "Updating package.json version..."
-npm version $NEW_VERSION --no-git-tag-version || { echo "Failed to update package.json version"; exit 1; }
-git add package.json package-lock.json || { echo "Failed to add package.json and package-lock.json"; exit 1; }
-git commit -m "Bump version in package.json to $NEW_VERSION" || { echo "Failed to commit package.json changes"; exit 1; }
-git push origin main || { echo "Failed to push package.json changes"; exit 1; }
 
 echo "Release process completed successfully!"

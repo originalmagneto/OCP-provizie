@@ -25,51 +25,21 @@ jobs:
 
       - name: Run tests
         run: npm test
-        - name: Create Release
-          env:
-            GITHUB_TOKEN: ${{ secrets.PAT }}
-          run: |
-            git config --local user.email "action@github.com"
-            git config --local user.name "GitHub Action"
 
-            # Fetch the latest changes
-            git fetch origin main
+      - name: Setup Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
 
-            # Get the current version from package.json
-            current_version=$(node -p "require('./package.json').version")
+      - name: Run Release Script
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+        run: |
+          chmod +x ./release.sh
+          ./release.sh
 
-            # Function to increment patch version
-            increment_version() {
-              local version=$1
-              local major=$(echo $version | cut -d. -f1)
-              local minor=$(echo $version | cut -d. -f2)
-              local patch=$(echo $version | cut -d. -f3)
-              local new_patch=$((patch + 1))
-              echo "$major.$minor.$new_patch"
-            }
-
-            # Check if the current version tag already exists and increment if necessary
-            while git rev-parse v$current_version >/dev/null 2>&1; do
-              echo "Version $current_version already exists, incrementing..."
-              current_version=$(increment_version $current_version)
-            done
-
-            # Set the new version
-            npm version $current_version -m "Bump version to %s" --no-git-tag-version
-
-            # Commit the new version
-            git add package.json package-lock.json
-            git commit -m "Bump version to $current_version"
-
-            # Rebase on top of the latest main branch
-            git rebase origin/main
-
-            # Create the new tag
-            git tag v$current_version
-
-            # Push changes and tags
-            git push origin main --force
-            git push origin v$current_version
-
-            # Run the release script
-            npm run release
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.PAT }}
+          branch: ${{ github.ref }}
