@@ -3,115 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoice Earnings Calculator</title>
+    <title>Invoice Earnings Calculator - Login</title>
     <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-    <div id="app" class="container">
-        <h1>Invoice Earnings Calculator</h1>
-
-        <div id="loginSection">
-            <h2>Login</h2>
-            <form id="loginForm" class="form">
-                <select id="username" required class="form-input">
-                    <option value="">Select User</option>
-                    <option value="AdvokatiCHZ">AdvokatiCHZ</option>
-                    <option value="MKMs">MKMs</option>
-                    <option value="Contax">Contax</option>
-                </select>
-                <input type="password" id="password" placeholder="Password" required class="form-input">
-                <button type="submit" class="btn btn-primary">Login</button>
+    <div class="container">
+        <div class="login-card">
+            <h1>Invoice Earnings Calculator</h1>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <select id="username" required>
+                        <option value="">Select User</option>
+                        <option value="AdvokatiCHZ">AdvokatiCHZ</option>
+                        <option value="MKMs">MKMs</option>
+                        <option value="Contax">Contax</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" required>
+                </div>
+                <button type="submit" class="btn-login">Login</button>
             </form>
         </div>
-
-        <div id="mainContent" style="display: none;">
-            <button id="logoutBtn" class="btn btn-secondary">Logout</button>
-            <button id="changePasswordBtn" class="btn btn-primary">Change Password</button>
-            <!-- Add more main content here -->
-        </div>
+    </div>
+    <div id="mainContent" style="display: none;">
+        <!-- Main content will be loaded here after successful login -->
     </div>
     <script src="/app.js"></script>
 </body>
 </html>
-```
-
-<edit>
-<path>ocp-provizie-v3/public/index.html</path>
-<operation>update</operation>
-<description>Update index.html with improved structure and class names for styling</description>
-</edit>
-</step>
-
-<step>
-Update styles.css
-
-Now, let's enhance the CSS to ensure proper styling for forms and buttons:
-
-```css
-body {
-    font-family: Arial, sans-serif;
-    line-height: 1.6;
-    margin: 0;
-    padding: 0;
-    background-color: #f4f4f4;
-}
-
-.container {
-    width: 80%;
-    max-width: 600px;
-    margin: 2rem auto;
-    padding: 1rem;
-    background-color: #fff;
-    border-radius: 5px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-}
-
-h1, h2 {
-    color: #333;
-    text-align: center;
-}
-
-.form {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-
-.form-input {
-    width: 100%;
-    padding: 0.5rem;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 1rem;
-}
-
-.btn {
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 1rem;
-    transition: background-color 0.3s ease;
-}
-
-.btn-primary {
-    background-color: #007bff;
-    color: #fff;
-}
-
-.btn-primary:hover {
-    background-color: #0056b3;
-}
-
-.btn-secondary {
-    background-color: #6c757d;
-    color: #fff;
-}
-
-.btn-secondary:hover {
-    background-color: #545b62;
-}
-
-#mainContent {
-    margin-top: 1rem;
-}
