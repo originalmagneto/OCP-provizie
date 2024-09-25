@@ -76,11 +76,6 @@ echo "Preparing release $NEW_VERSION"
 echo "Generating changelog..."
 CHANGELOG=$(git log $(git describe --tags --abbrev=0 2>/dev/null)..HEAD --pretty=format:"- %s")
 
-if [[ -z $(git status -s) ]]; then
-    echo "No changes to commit. Aborting release."
-    exit 1
-fi
-
 STRUCTURED_COMMENT=$(generate_structured_comment)
 
 echo "Structured comment for this release:"
@@ -91,6 +86,9 @@ read -e CUSTOM_COMMENT
 if [[ -z "$CUSTOM_COMMENT" ]]; then
     CUSTOM_COMMENT="$STRUCTURED_COMMENT"
 fi
+
+echo "Updating package-lock.json..."
+npm install --package-lock-only
 
 echo "Adding all changes..."
 git add . || { echo "Failed to add changes"; exit 1; }
@@ -128,15 +126,10 @@ fi
 
 echo "Release $NEW_VERSION has been created and pushed to GitHub"
 
-if [[ -f "package.json" ]]; then
-    echo "Updating package.json version..."
-    if npm version $NEW_VERSION --no-git-tag-version; then
-        git add package.json
-        git commit -m "Bump version in package.json to $NEW_VERSION"
-        git push origin main || { echo "Failed to push package.json changes"; exit 1; }
-    else
-        echo "Failed to update package.json version. Please update it manually."
-    fi
-fi
+echo "Updating package.json version..."
+npm version $NEW_VERSION --no-git-tag-version || { echo "Failed to update package.json version"; exit 1; }
+git add package.json package-lock.json || { echo "Failed to add package.json and package-lock.json"; exit 1; }
+git commit -m "Bump version in package.json to $NEW_VERSION" || { echo "Failed to commit package.json changes"; exit 1; }
+git push origin main || { echo "Failed to push package.json changes"; exit 1; }
 
-echo "Release process completed!"
+echo "Release process completed successfully!"
