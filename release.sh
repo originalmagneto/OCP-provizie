@@ -1,89 +1,96 @@
 #!/bin/bash
 
+set -e  # Exit immediately if a command exits with a non-zero status.
+
 # Function to increment version
 increment_version() {
     local version=$1
-    local position=$2
+    local release_type=$2
     IFS='.' read -ra ADDR <<< "$version"
-    for i in "${!ADDR[@]}"; do
-        if [[ $i -eq $position ]]; then
-            ADDR[$i]=$((ADDR[$i]+1))
-        elif [[ $i -gt $position ]]; then
-            ADDR[$i]=0
-        fi
-    done
+    case $release_type in
+        major)
+            ADDR[0]=$((ADDR[0]+1))
+            ADDR[1]=0
+            ADDR[2]=0
+            ;;
+        minor)
+            ADDR[1]=$((ADDR[1]+1))
+            ADDR[2]=0
+            ;;
+        patch|*)
+            ADDR[2]=$((ADDR[2]+1))
+            ;;
+    esac
     echo "${ADDR[*]}" | sed 's/ /./g'
 }
 
-# Ensure we're on the main branch
-git checkout main
+echo "Ensuring we're on the main branch..."
+git checkout main || { echo "Failed to checkout main branch"; exit 1; }
 
-# Pull the latest changes
-git pull origin main
+echo "Stashing local changes..."
+git stash
 
-# Get the latest tag
+echo "Pulling latest changes..."
+git fetch origin main
+git reset --hard origin/main || { echo "Failed to reset to origin/main"; exit 1; }
+
+echo "Applying stashed changes..."
+git stash pop || true  # Don't fail if there's nothing to pop
+
+echo "Getting the latest tag..."
 LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null)
 
 if [[ -z "$LATEST_TAG" ]]; then
-    NEW_VERSION="v0.0.1"
+    NEW_VERSION="0.0.1"
 else
-    # Remove 'v' prefix for version calculation
     VERSION_NUMBER=${LATEST_TAG#v}
-    NEW_VERSION="v$(increment_version $VERSION_NUMBER 2)"
+    RELEASE_TYPE=${RELEASE_TYPE:-patch}
+    NEW_VERSION=$(increment_version $VERSION_NUMBER $RELEASE_TYPE)
 fi
 
-echo "Preparing release $NEW_VERSION"
+CURRENT_VERSION=$(node -p "require('./package.json').version")
 
-# Generate changelog
+if [[ "$NEW_VERSION" == "$CURRENT_VERSION" ]]; then
+    echo "Version $NEW_VERSION is already the current version. Incrementing..."
+    NEW_VERSION=$(increment_version $CURRENT_VERSION patch)
+fi
+
+echo "Preparing release v$NEW_VERSION"
+
+echo "Generating changelog..."
 CHANGELOG=$(git log $(git describe --tags --abbrev=0 2>/dev/null)..HEAD --pretty=format:"- %s")
 
-# Check if there are any changes to commit
-if [[ -z $(git status -s) ]]; then
-    echo "No changes to commit. Aborting release."
-    exit 1
-fi
+# Generate structured comment (as before)
 
-# Prompt for a custom comment
-echo "Please enter a comment describing the nature of the changes:"
-read -e CUSTOM_COMMENT
+echo "Updating package.json version..."
+npm version $NEW_VERSION --no-git-tag-version || { echo "Failed to update package.json version"; exit 1; }
 
-# Add all changes
-git add .
+echo "Updating package-lock.json..."
+npm install --package-lock-only
 
-# Commit changes
-git commit -m "Release $NEW_VERSION
+echo "Adding all changes..."
+git add . || { echo "Failed to add changes"; exit 1; }
 
-$CUSTOM_COMMENT
+echo "Committing changes..."
+git commit -m "Release v$NEW_VERSION
+
+$STRUCTURED_COMMENT
 
 Changelog:
-$CHANGELOG"
+$CHANGELOG" || { echo "Failed to commit changes"; exit 1; }
 
-# Create a new tag
-git tag -a $NEW_VERSION -m "Release $NEW_VERSION
+echo "Creating new tag..."
+git tag -a v$NEW_VERSION -m "Release v$NEW_VERSION
 
-$CUSTOM_COMMENT
-
-Changelog:
-$CHANGELOG"
-
-# Push changes and tags to GitHub
-git push origin main
-git push origin $NEW_VERSION
-
-# Create GitHub release
-gh release create $NEW_VERSION -t "Release $NEW_VERSION" -n "$CUSTOM_COMMENT
+$STRUCTURED_COMMENT
 
 Changelog:
-$CHANGELOG"
+$CHANGELOG" || { echo "Failed to create tag"; exit 1; }
 
-echo "Release $NEW_VERSION has been created and pushed to GitHub"
+echo "Pushing changes and tags to GitHub..."
+git push origin main || { echo "Failed to push to main"; exit 1; }
+git push origin v$NEW_VERSION || { echo "Failed to push tag"; exit 1; }
 
-# Update package.json version (if it exists)
-if [[ -f "package.json" ]]; then
-    npm version $NEW_VERSION --no-git-tag-version
-    git add package.json
-    git commit -m "Bump version in package.json to $NEW_VERSION"
-    git push origin main
-fi
+echo "Release v$NEW_VERSION has been created and pushed to GitHub"
 
 echo "Release process completed successfully!"

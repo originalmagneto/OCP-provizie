@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice Earnings Calculator - Login</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="login-card">
+            <h1>Invoice Earnings Calculator</h1>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <select id="username" required>
+                        <option value="">Select User</option>
+                        <option value="AdvokatiCHZ">AdvokatiCHZ</option>
+                        <option value="MKMs">MKMs</option>
+                        <option value="Contax">Contax</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" required>
+                </div>
+                <button type="submit" class="btn-login">Login</button>
+            </form>
+        </div>
+    </div>
+    <div id="mainContent" style="display: none;">
+        <!-- Main content will be loaded here after successful login -->
+    </div>
+    <script src="/app.js"></script>
+</body>
+</html>
