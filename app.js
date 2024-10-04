@@ -13,7 +13,28 @@ const currentUser = localStorage.getItem("currentUser");
 
 // Function to set the current user display
 function setCurrentUserDisplay() {
-  // ... (keep the existing implementation)
+  const currentUserDisplay = document.getElementById("currentUserDisplay");
+  if (currentUserDisplay && currentUser) {
+    let backgroundColor;
+    switch (currentUser) {
+      case "AdvokatiCHZ":
+        backgroundColor = "purple";
+        break;
+      case "MKMs":
+        backgroundColor = "black";
+        break;
+      case "Contax":
+        backgroundColor = "yellow";
+        break;
+      default:
+        backgroundColor = "gray";
+    }
+    currentUserDisplay.style.backgroundColor = backgroundColor;
+    currentUserDisplay.style.color =
+      currentUser === "Contax" ? "black" : "white";
+    currentUserDisplay.style.fontWeight = "bold";
+    currentUserDisplay.textContent = currentUser;
+  }
 }
 
 // Function to initialize the application
@@ -646,29 +667,3 @@ document
     localStorage.removeItem("currentUser");
     window.location.href = "login.html";
   });
-
-// Function to set the current user display
-function setCurrentUserDisplay() {
-  const currentUserDisplay = document.getElementById("currentUserDisplay");
-  if (currentUserDisplay && currentUser) {
-    let backgroundColor;
-    switch (currentUser) {
-      case "AdvokatiCHZ":
-        backgroundColor = "purple";
-        break;
-      case "MKMs":
-        backgroundColor = "black";
-        break;
-      case "Contax":
-        backgroundColor = "yellow";
-        break;
-      default:
-        backgroundColor = "gray";
-    }
-    currentUserDisplay.style.backgroundColor = backgroundColor;
-    currentUserDisplay.style.color =
-      currentUser === "Contax" ? "black" : "white";
-    currentUserDisplay.style.fontWeight = "bold";
-    currentUserDisplay.textContent = currentUser;
-  }
-}
