@@ -271,7 +271,7 @@ function renderSummaryTables() {
 // Function to create a referrer table
 function createReferrerTable(referrer) {
   const table = document.createElement("table");
-  table.className = "table table-sm summary-table";
+  table.className = `table table-sm summary-table ${referrer.toLowerCase().replace(/\s+/g, "-")}`;
 
   const referrerInvoices = invoices.filter(
     (invoice) => invoice.referrer === referrer,
@@ -292,7 +292,7 @@ function createReferrerTable(referrer) {
   let tableHTML = `
         <thead>
             <tr>
-                <th colspan="5"><h3 class="referrer-name ${referrer.toLowerCase()}" style="color: ${referrerColor};">${referrer}</h3></th>
+                <th colspan="5"><h3 class="referrer-name" style="color: ${referrerColor};">${referrer}</h3></th>
             </tr>
             <tr>
                 <th>Year</th>

@@ -66,8 +66,17 @@ h2 {
     font-weight: bold;
 }
 
+.summary-table .referrer-AdvokatiCHZ {
+    background: linear-gradient(to right, rgba(128, 0, 128, 0.1), rgba(128, 0, 128, 0.3));
+}
+
+.summary-table .referrer-MKMs {
+    background: linear-gradient(to right, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.3));
+}
+
 .summary-table .referrer-Contax {
-    color: yellow;
+    background: linear-gradient(to right, rgba(255, 255, 0, 0.1), rgba(255, 255, 0, 0.3));
+    color: black;
 }
 
 .summary-table .quarter-label {
@@ -82,6 +91,21 @@ h2 {
 #currentUserDisplay {
     font-size: 1.2rem;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+#addInvoiceBox, #summaryBox {
+    flex: 0 0 auto;
+}
+
+#summaryBox {
+    margin-left: 20px;
+}
     transition: all 0.3s ease;
 }
 
