@@ -3,16 +3,9 @@
 # Function to increment version
 increment_version() {
     local version=$1
-    local position=$2
     IFS='.' read -ra ADDR <<< "$version"
-    for i in "${!ADDR[@]}"; do
-        if [[ $i -eq $position ]]; then
-            ADDR[$i]=$((ADDR[$i]+1))
-        elif [[ $i -gt $position ]]; then
-            ADDR[$i]=0
-        fi
-    done
-    echo "${ADDR[*]}" | sed 's/ /./g'
+    ADDR[2]=$((ADDR[2]+1))
+    echo "${ADDR[0]}.${ADDR[1]}.${ADDR[2]}"
 }
 
 # Ensure we're on the main branch
@@ -29,7 +22,7 @@ if [[ -z "$LATEST_TAG" ]]; then
 else
     # Remove 'v' prefix for version calculation
     VERSION_NUMBER=${LATEST_TAG#v}
-    NEW_VERSION="v$(increment_version $VERSION_NUMBER 2)"
+    NEW_VERSION="v$(increment_version $VERSION_NUMBER)"
 fi
 
 echo "Preparing release $NEW_VERSION"
