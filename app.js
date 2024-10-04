@@ -1,7 +1,10 @@
 // Use API_BASE_URL in your fetch calls, for example:
 // fetch(`${API_BASE_URL}/get-invoices`)
 
-const API_BASE_URL = "http://192.168.100.110:3001";
+const API_BASE_URL =
+  process.env.NODE_ENV === "production"
+    ? "https://ocp-provizie-final.onrender.com"
+    : "http://localhost:3001";
 
 // Initialize global variables
 let invoices = [];

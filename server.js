@@ -10,7 +10,10 @@ const sqlite3 = require("sqlite3").verbose();
 const app = express();
 app.use(
   cors({
-    origin: "*", // Be cautious with this in production
+    origin:
+      process.env.NODE_ENV === "production"
+        ? "https://ocp-provizie-final.onrender.com"
+        : "http://localhost:3000",
     credentials: true,
   }),
 );
