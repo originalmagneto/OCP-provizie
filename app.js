@@ -45,8 +45,6 @@ document
     window.location.href = "login.html";
   });
 
-// ... (keep all other functions as they are)
-
 // Function to initialize the application
 async function init() {
   console.log("Initializing application");
