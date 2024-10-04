@@ -14,6 +14,10 @@ const currentUser = localStorage.getItem("currentUser");
 // Make updateQuarterStatus globally accessible
 window.updateQuarterStatus = updateQuarterStatus;
 
+window.deleteInvoice = deleteInvoice;
+window.editInvoice = editInvoice;
+window.updatePaidStatus = updatePaidStatus;
+
 // Function to set the current user display
 function setCurrentUserDisplay() {
   const currentUserDisplay = document.getElementById("currentUserDisplay");
@@ -262,16 +266,16 @@ function renderInvoiceList() {
             <td>${invoice.referrer}</td>
             <td>${(invoice.bonusPercentage * 100).toFixed(0)}%</td>
             <td>
-                <input type="checkbox" ${invoice.paid ? "checked" : ""}
-                       onchange="updatePaidStatus(${invoice.id}, this.checked)"
+                <input type="checkbox" class="paid-status-checkbox" ${invoice.paid ? "checked" : ""}
+                       data-id="${invoice.id}"
                        ${isEditable ? "" : "disabled"}>
             </td>
             <td>
                 ${
                   isEditable
                     ? `
-                    <button onclick="editInvoice(${invoice.id})">Edit</button>
-                    <button onclick="deleteInvoice(${invoice.id})">Delete</button>
+                    <button class="edit-invoice" data-id="${invoice.id}">Edit</button>
+                    <button class="delete-invoice" data-id="${invoice.id}">Delete</button>
                 `
                     : ""
                 }
@@ -279,6 +283,26 @@ function renderInvoiceList() {
         `;
     tbody.appendChild(tr);
   });
+
+  // Add event listeners
+  tbody.querySelectorAll(".paid-status-checkbox").forEach((checkbox) => {
+    checkbox.addEventListener("change", function () {
+      updatePaidStatus(this.dataset.id, this.checked);
+    });
+  });
+
+  tbody.querySelectorAll(".edit-invoice").forEach((button) => {
+    button.addEventListener("click", function () {
+      editInvoice(this.dataset.id);
+    });
+  });
+
+  tbody.querySelectorAll(".delete-invoice").forEach((button) => {
+    button.addEventListener("click", function () {
+      deleteInvoice(this.dataset.id);
+    });
+  });
+
   console.log("Invoice list rendered successfully");
 }
 
