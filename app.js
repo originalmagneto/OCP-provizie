@@ -1,8 +1,8 @@
 // Use API_BASE_URL in your fetch calls, for example:
-// fetch(`${API_BASE_URL}/get-invoices`)
+// fetch(`${config.API_BASE_URL}/get-invoices`)
 
-const API_BASE_URL =
-  process.env.API_BASE_URL || "https://ocp-provizie-final.onrender.com";
+const config = {
+  API_BASE_URL: 'https://ocp-provizie-final.onrender.com'
 
 // Initialize global variables
 let invoices = [];
@@ -72,7 +72,7 @@ async function init() {
 // Function to fetch invoices from the server
 async function fetchInvoices() {
   try {
-    const response = await fetch(`${API_BASE_URL}/get-invoices`);
+    const response = await fetch(`${config.API_BASE_URL}/get-invoices`);
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(
