@@ -18,35 +18,6 @@ function setCurrentUserDisplay() {
 
 // Function to initialize the application
 async function init() {
-  // ... (keep the existing implementation)
-}
-
-// Add event listener for DOMContentLoaded
-document.addEventListener("DOMContentLoaded", function () {
-  if (!currentUser) {
-    window.location.href = "login.html";
-  } else {
-    init();
-  }
-});
-
-// Add logout functionality
-document.getElementById("logoutBtn").addEventListener("click", function () {
-  localStorage.removeItem("currentUser");
-  window.location.href = "login.html";
-});
-
-// Add change password functionality
-document
-  .getElementById("changePasswordBtn")
-  .addEventListener("click", function () {
-    localStorage.setItem("changePassword", "true");
-    localStorage.removeItem("currentUser");
-    window.location.href = "login.html";
-  });
-
-// Function to initialize the application
-async function init() {
   console.log("Initializing application");
   setCurrentUserDisplay();
   const form = document.getElementById("invoice-form");
@@ -77,6 +48,30 @@ async function init() {
     alert("Failed to initialize application. Please try refreshing the page.");
   }
 }
+
+// Add event listener for DOMContentLoaded
+document.addEventListener("DOMContentLoaded", function () {
+  if (!currentUser) {
+    window.location.href = "login.html";
+  } else {
+    init();
+  }
+});
+
+// Add logout functionality
+document.getElementById("logoutBtn").addEventListener("click", function () {
+  localStorage.removeItem("currentUser");
+  window.location.href = "login.html";
+});
+
+// Add change password functionality
+document
+  .getElementById("changePasswordBtn")
+  .addEventListener("click", function () {
+    localStorage.setItem("changePassword", "true");
+    localStorage.removeItem("currentUser");
+    window.location.href = "login.html";
+  });
 
 // Function to fetch invoices from the server
 async function fetchInvoices() {
