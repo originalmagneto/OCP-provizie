@@ -11,6 +11,9 @@ let clientNames = [];
 let quarterlyBonusPaidStatus = {};
 const currentUser = localStorage.getItem("currentUser");
 
+// Make updateQuarterStatus globally accessible
+window.updateQuarterStatus = updateQuarterStatus;
+
 // Function to set the current user display
 function setCurrentUserDisplay() {
   const currentUserDisplay = document.getElementById("currentUserDisplay");
@@ -334,7 +337,7 @@ function createReferrerTable(referrer) {
                     (quarter) => `
                     <th class="quarter-header">
                         Q${quarter}
-                        <input type="checkbox" class="paid-checkbox" data-quarter="${quarter}" onchange="updateQuarterStatus(this, '${referrer}')" ${isAuthorized ? "" : "disabled"}>
+                        <input type="checkbox" class="paid-checkbox" data-quarter="${quarter}" data-referrer="${referrer}" ${isAuthorized ? "" : "disabled"}>
                     </th>
                 `,
                   )
@@ -376,7 +379,7 @@ function createReferrerTable(referrer) {
   tableHTML += "</tbody>";
   table.innerHTML = tableHTML;
 
-  // Set initial checkbox states
+  // Set initial checkbox states and add event listeners
   [1, 2, 3, 4].forEach((quarter) => {
     const checkbox = table.querySelector(
       `th:nth-child(${quarter + 1}) .paid-checkbox`,
@@ -386,6 +389,9 @@ function createReferrerTable(referrer) {
     );
     if (checkbox) {
       checkbox.checked = isPaid;
+      checkbox.addEventListener("change", function () {
+        updateQuarterStatus(this, this.dataset.referrer);
+      });
     }
   });
 
