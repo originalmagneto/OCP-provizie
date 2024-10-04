@@ -3,15 +3,9 @@ body {
 }
 
 #app {
-    max-width: 1200px;
+    max-width: 1600px;
     margin: 0 auto;
-}
-
-.dashboard {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 20px;
-    margin-bottom: 20px;
+    padding: 0 20px;
 }
 
 .bento-box {
@@ -19,27 +13,33 @@ body {
     border-radius: 15px;
     padding: 20px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+    height: 100%;
 }
 
 .user-indicator {
-    position: absolute;
-    top: 20px;
-    left: 20px;
     padding: 10px 20px;
     border-radius: 20px;
     font-weight: bold;
     color: white;
     font-size: 1.2rem;
+    display: inline-block;
 }
 
-h1,
-h2 {
+h1 {
+    font-size: 1.8rem;
     color: #333;
-    margin-bottom: 20px;
+}
+
+h2 {
+    font-size: 1.4rem;
+    color: #444;
+    margin-bottom: 15px;
 }
 
 .table {
     font-size: 0.9rem;
+    width: 100%;
 }
 
 .summary-table {
@@ -80,8 +80,65 @@ h2 {
     margin-right: 5px;
 }
 
+#addInvoiceBox {
+    width: 50%;
+    max-width: none;
+}
+
+#addInvoiceBox form {
+    display: flex;
+    flex-direction: column;
+}
+
+#addInvoiceBox form > div {
+    margin-bottom: 10px;
+}
+
+#addInvoiceBox form label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+#addInvoiceBox form input,
+#addInvoiceBox form select {
+    width: 100%;
+}
+
+#addInvoiceBox form button {
+    align-self: flex-start;
+}
+
+#summaryBox {
+    width: 50%;
+}
+
+.dashboard {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 20px;
+}
+
+#addInvoiceBox,
+#summaryBox {
+    flex: none;
+    min-width: 0;
+}
+
+#invoiceListBox {
+    width: 100%;
+    margin-top: 20px;
+}
+
 @media (max-width: 768px) {
+    .bento-box {
+        margin-bottom: 15px;
+    }
+    #addInvoiceBox,
+    #summaryBox,
+    #invoiceListBox {
+        width: 100%;
+    }
     .dashboard {
-        grid-template-columns: 1fr;
+        flex-wrap: wrap;
     }
 }
