@@ -27,23 +27,26 @@ fi
 
 echo "Preparing release $NEW_VERSION"
 
-# Generate changelog
-CHANGELOG=$(git log $(git describe --tags --abbrev=0 2>/dev/null)..HEAD --pretty=format:"- %s")
+# Generate detailed changelog
+CHANGELOG=$(git log $(git describe --tags --abbrev=0 2>/dev/null)..HEAD --pretty=format:"- %s%n%b")
+
+# Process changelog to make it more readable
+PROCESSED_CHANGELOG=$(echo "$CHANGELOG" | sed -e 's/^- /\n### /' -e 's/^/  /' | sed -e 's/^  ###/###/')
 
 # Check if there are any changes to commit
-if [[ -z $(git status -s) ]]; then
+if [[ -z $(git status -s) && -z "$CHANGELOG" ]]; then
     echo "No changes detected. Creating release without new commit."
     # Generate automatic comment for no changes
     AUTO_COMMENT="This is a maintenance release with no code changes.
 
-For more details, please refer to the full changelog."
+No changes were made in this release."
 else
     # Generate automatic comment for changes
     AUTO_COMMENT="This release includes the following changes:
 
-$CHANGELOG
+$PROCESSED_CHANGELOG
 
-For more details, please refer to the full changelog."
+These changes improve the functionality and stability of the application."
 
     # Add all changes
     git add .
