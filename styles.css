@@ -53,6 +53,9 @@ h2 {
     font-size: 1.2rem;
     font-weight: bold;
     margin-bottom: 10px;
+    color: white;
+    padding: 10px;
+    border-radius: 5px;
 }
 
 .summary-table th,
@@ -66,16 +69,16 @@ h2 {
     font-weight: bold;
 }
 
-.summary-table .referrer-AdvokatiCHZ {
-    background: linear-gradient(to right, rgba(128, 0, 128, 0.1), rgba(128, 0, 128, 0.3));
+.summary-table .referrer-AdvokatiCHZ h3 {
+    background-color: purple;
 }
 
-.summary-table .referrer-MKMs {
-    background: linear-gradient(to right, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.3));
+.summary-table .referrer-MKMs h3 {
+    background-color: black;
 }
 
-.summary-table .referrer-Contax {
-    background: linear-gradient(to right, rgba(255, 255, 0, 0.1), rgba(255, 255, 0, 0.3));
+.summary-table .referrer-Contax h3 {
+    background-color: yellow;
     color: black;
 }
 
@@ -86,6 +89,15 @@ h2 {
 
 .summary-table .bonus-checkbox {
     margin-left: 10px;
+}
+
+.summary-table .paid {
+    text-decoration: line-through;
+    color: #28a745;
+}
+
+.summary-table .unpaid {
+    color: #dc3545;
 }
 
 #currentUserDisplay {

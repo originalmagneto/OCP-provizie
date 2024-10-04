@@ -292,14 +292,14 @@ function createReferrerTable(referrer) {
   let tableHTML = `
         <thead>
             <tr>
-                <th colspan="5"><h3 class="referrer-name" style="color: ${referrerColor};">${referrer}</h3></th>
+                <th colspan="5" class="referrer-header" style="background-color: ${referrerColor}; color: white;">${referrer}</th>
             </tr>
             <tr>
                 <th>Year</th>
-                <th class="quarter-header">Q1 <input type="checkbox" class="paid-checkbox"></th>
-                <th class="quarter-header">Q2 <input type="checkbox" class="paid-checkbox"></th>
-                <th class="quarter-header">Q3 <input type="checkbox" class="paid-checkbox"></th>
-                <th class="quarter-header">Q4 <input type="checkbox" class="paid-checkbox"></th>
+                <th class="quarter-header">Q1 <input type="checkbox" class="paid-checkbox" onchange="updateQuarterStatus(this, '${referrer}', 1)"></th>
+                <th class="quarter-header">Q2 <input type="checkbox" class="paid-checkbox" onchange="updateQuarterStatus(this, '${referrer}', 2)"></th>
+                <th class="quarter-header">Q3 <input type="checkbox" class="paid-checkbox" onchange="updateQuarterStatus(this, '${referrer}', 3)"></th>
+                <th class="quarter-header">Q4 <input type="checkbox" class="paid-checkbox" onchange="updateQuarterStatus(this, '${referrer}', 4)"></th>
             </tr>
         </thead>
         <tbody>
@@ -321,12 +321,11 @@ function createReferrerTable(referrer) {
                       year,
                       quarter,
                     );
-                    const isEditable = referrer === currentUser;
                     return `
                         <td>
-                            <span style="${
-                              isPaid ? "text-decoration: line-through;" : ""
-                            }">€${quarterlyBonus.toFixed(2)}</span>
+                            <span class="quarter-amount ${isPaid ? "paid" : "unpaid"}" data-year="${year}" data-quarter="${quarter}">
+                                €${quarterlyBonus.toFixed(2)}
+                            </span>
                         </td>
                     `;
                   })
@@ -478,7 +477,15 @@ async function updateQuarterlyBonusPaidStatus(referrer, year, quarter, isPaid) {
         quarterlyBonusPaidStatus[referrer] = {};
       }
       quarterlyBonusPaidStatus[referrer][`${year}-${quarter}`] = isPaid;
-      renderSummaryTables();
+
+      // Update the visual status
+      const amountSpan = document.querySelector(
+        `.summary-table.${referrer.toLowerCase().replace(/\s+/g, "-")} .quarter-amount[data-year="${year}"][data-quarter="${quarter}"]`,
+      );
+      if (amountSpan) {
+        amountSpan.classList.toggle("paid", isPaid);
+        amountSpan.classList.toggle("unpaid", !isPaid);
+      }
     } else {
       throw new Error("Failed to update quarterly bonus status");
     }
@@ -486,6 +493,14 @@ async function updateQuarterlyBonusPaidStatus(referrer, year, quarter, isPaid) {
     console.error("Error updating quarterly bonus paid status:", error);
     alert(`Failed to update quarterly bonus paid status: ${error.message}`);
   }
+}
+
+function updateQuarterStatus(checkbox, referrer, quarter) {
+  const year = checkbox
+    .closest("tr")
+    .querySelector("td:first-child").textContent;
+  const isPaid = checkbox.checked;
+  updateQuarterlyBonusPaidStatus(referrer, parseInt(year), quarter, isPaid);
 }
 
 // Function to update paid status of an invoice
