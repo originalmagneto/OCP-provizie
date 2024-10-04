@@ -4,11 +4,11 @@
 const config = {
   API_BASE_URL: 'https://ocp-provizie-final.onrender.com'
 
-// Initialize global variables
-let invoices = [];
-let clientNames = [];
-let quarterlyBonusPaidStatus = {};
-const currentUser = localStorage.getItem("currentUser");
+  // Initialize global variables
+  let invoices = [];
+  let clientNames = [];
+  let quarterlyBonusPaidStatus = {};
+  const currentUser = localStorage.getItem("currentUser");
 
 // Function to set the current user display
 function setCurrentUserDisplay() {
