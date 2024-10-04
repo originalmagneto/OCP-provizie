@@ -58,8 +58,8 @@ $CUSTOM_COMMENT
 Changelog:
 $CHANGELOG"
 
-# Create a new tag
-git tag -a $NEW_VERSION -m "Release $NEW_VERSION
+# Create a new tag or update existing one
+git tag -f $NEW_VERSION -m "Release $NEW_VERSION
 
 $CUSTOM_COMMENT
 
@@ -68,10 +68,13 @@ $CHANGELOG"
 
 # Push changes and tags to GitHub
 git push origin main
-git push origin $NEW_VERSION
+git push -f origin $NEW_VERSION
 
-# Create GitHub release
-gh release create $NEW_VERSION -t "Release $NEW_VERSION" -n "$CUSTOM_COMMENT
+# Create or update GitHub release
+gh release create $NEW_VERSION --title "Release $NEW_VERSION" --notes "$CUSTOM_COMMENT
+
+Changelog:
+$CHANGELOG" --target main || gh release edit $NEW_VERSION --title "Release $NEW_VERSION" --notes "$CUSTOM_COMMENT
 
 Changelog:
 $CHANGELOG"
