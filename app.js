@@ -2,9 +2,7 @@
 // fetch(`${API_BASE_URL}/get-invoices`)
 
 const API_BASE_URL =
-  process.env.NODE_ENV === "production"
-    ? "https://ocp-provizie-final.onrender.com"
-    : "http://localhost:3001";
+  process.env.API_BASE_URL || "https://ocp-provizie-final.onrender.com";
 
 // Initialize global variables
 let invoices = [];
