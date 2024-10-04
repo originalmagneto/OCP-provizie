@@ -289,6 +289,8 @@ function createReferrerTable(referrer) {
           ? "#D4AF37"
           : "inherit";
 
+  const isAuthorized = referrer === currentUser;
+
   let tableHTML = `
         <thead>
             <tr>
@@ -301,7 +303,7 @@ function createReferrerTable(referrer) {
                     (quarter) => `
                     <th class="quarter-header">
                         Q${quarter}
-                        <input type="checkbox" class="paid-checkbox" data-quarter="${quarter}" onchange="updateQuarterStatus(this, '${referrer}')">
+                        <input type="checkbox" class="paid-checkbox" data-quarter="${quarter}" onchange="updateQuarterStatus(this, '${referrer}')" ${isAuthorized ? "" : "disabled"}>
                     </th>
                 `,
                   )
@@ -360,6 +362,13 @@ function createReferrerTable(referrer) {
 }
 
 function updateQuarterStatus(checkbox, referrer) {
+  if (referrer !== currentUser) {
+    console.error("Not authorized to update this status");
+    alert("You are not authorized to change this status.");
+    checkbox.checked = !checkbox.checked; // Revert the checkbox state
+    return;
+  }
+
   const quarter = parseInt(checkbox.dataset.quarter);
   const isPaid = checkbox.checked;
   const table = checkbox.closest("table");
@@ -367,14 +376,37 @@ function updateQuarterStatus(checkbox, referrer) {
     `tbody td:nth-child(${quarter + 1}) .quarter-amount`,
   );
 
-  amountSpans.forEach((amountSpan) => {
-    const year = parseInt(amountSpan.dataset.year);
-    amountSpan.classList.toggle("paid", isPaid);
-    amountSpan.classList.toggle("unpaid", !isPaid);
-    amountSpan.style.textDecoration = isPaid ? "line-through" : "none";
-    amountSpan.style.color = isPaid ? "green" : "red";
-    updateQuarterlyBonusPaidStatus(referrer, year, quarter, isPaid);
-  });
+  Promise.all(
+    Array.from(amountSpans).map(async (amountSpan) => {
+      const year = parseInt(amountSpan.dataset.year);
+      try {
+        await updateQuarterlyBonusPaidStatus(referrer, year, quarter, isPaid);
+        amountSpan.classList.toggle("paid", isPaid);
+        amountSpan.classList.toggle("unpaid", !isPaid);
+        amountSpan.style.textDecoration = isPaid ? "line-through" : "none";
+        amountSpan.style.color = isPaid ? "green" : "red";
+      } catch (error) {
+        console.error("Failed to update status:", error);
+        throw error; // Propagate the error to be caught in the outer catch block
+      }
+    }),
+  )
+    .then(() => {
+      console.log("All updates completed successfully");
+    })
+    .catch((error) => {
+      console.error("Failed to update some or all statuses:", error);
+      checkbox.checked = !checkbox.checked; // Revert the checkbox state
+      amountSpans.forEach((amountSpan) => {
+        amountSpan.classList.toggle("paid", !isPaid);
+        amountSpan.classList.toggle("unpaid", isPaid);
+        amountSpan.style.textDecoration = !isPaid ? "line-through" : "none";
+        amountSpan.style.color = !isPaid ? "green" : "red";
+      });
+      alert(
+        "Failed to update some or all quarterly bonus statuses. Please try again.",
+      );
+    });
 }
 
 // Function to calculate quarterly bonus
@@ -488,8 +520,7 @@ function getQuarterlyBonusPaidStatus(referrer, year, quarter) {
 async function updateQuarterlyBonusPaidStatus(referrer, year, quarter, isPaid) {
   if (referrer !== currentUser) {
     console.error("Not authorized to update this status");
-    alert("You are not authorized to change this status.");
-    return;
+    throw new Error("Not authorized to update this status");
   }
 
   try {
@@ -515,23 +546,12 @@ async function updateQuarterlyBonusPaidStatus(referrer, year, quarter, isPaid) {
         quarterlyBonusPaidStatus[referrer] = {};
       }
       quarterlyBonusPaidStatus[referrer][`${year}-${quarter}`] = isPaid;
-
-      // Update the visual status
-      const amountSpan = document.querySelector(
-        `.summary-table.${referrer.toLowerCase().replace(/\s+/g, "-")} .quarter-amount[data-year="${year}"][data-quarter="${quarter}"]`,
-      );
-      if (amountSpan) {
-        amountSpan.classList.toggle("paid", isPaid);
-        amountSpan.classList.toggle("unpaid", !isPaid);
-        amountSpan.style.textDecoration = isPaid ? "line-through" : "none";
-        amountSpan.style.color = isPaid ? "green" : "red";
-      }
     } else {
       throw new Error("Failed to update quarterly bonus status");
     }
   } catch (error) {
     console.error("Error updating quarterly bonus paid status:", error);
-    alert(`Failed to update quarterly bonus paid status: ${error.message}`);
+    throw error;
   }
 }
 
