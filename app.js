@@ -587,13 +587,16 @@ function updateQuarterStatus(checkbox, referrer) {
 async function updatePaidStatus(id, paid) {
   console.log(`Updating paid status for invoice ${id} to ${paid}`);
   try {
-    const response = await fetch(`${API_BASE_URL}/update-invoice/${id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
+    const response = await fetch(
+      `${config.API_BASE_URL}/update-invoice/${id}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ paid, currentUser }),
       },
-      body: JSON.stringify({ paid, currentUser }),
-    });
+    );
 
     if (!response.ok) {
       const errorData = await response.json();
@@ -635,40 +638,7 @@ function updateClientNameSuggestions() {
   console.log("Client suggestions updated:", clientNames);
 }
 
-// Function to initialize the application
-async function init() {
-  console.log("Initializing application");
-  setCurrentUserDisplay();
-  const form = document.getElementById("invoice-form");
-  const yearInput = document.getElementById("year");
-  const monthInput = document.getElementById("month");
-
-  if (form) {
-    form.addEventListener("submit", handleFormSubmit);
-    console.log("Form submit event listener added");
-  } else {
-    console.error("Invoice form not found");
-  }
-
-  // Set default year and month
-  const currentDate = new Date();
-  if (yearInput) yearInput.value = currentDate.getFullYear();
-  if (monthInput) monthInput.value = currentDate.getMonth() + 1; // JavaScript months are 0-indexed
-
-  try {
-    await Promise.all([
-      fetchInvoices(),
-      fetchClientNames(),
-      fetchQuarterlyBonusPaidStatus(),
-    ]);
-    renderSummaryTables();
-  } catch (error) {
-    console.error("Error initializing application:", error);
-    alert("Failed to initialize application. Please try refreshing the page.");
-  }
-}
-
-// Add event listener for DOMContentLoaded
+// Event listeners
 document.addEventListener("DOMContentLoaded", function () {
   if (!currentUser) {
     window.location.href = "login.html";
@@ -677,13 +647,11 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 });
 
-// Add logout functionality
 document.getElementById("logoutBtn").addEventListener("click", function () {
   localStorage.removeItem("currentUser");
   window.location.href = "login.html";
 });
 
-// Add change password functionality
 document
   .getElementById("changePasswordBtn")
   .addEventListener("click", function () {
