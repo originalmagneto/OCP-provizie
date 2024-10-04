@@ -2,13 +2,50 @@
 // fetch(`${config.API_BASE_URL}/get-invoices`)
 
 const config = {
-  API_BASE_URL: 'https://ocp-provizie-final.onrender.com'
+  API_BASE_URL: "https://ocp-provizie-final.onrender.com",
+};
 
-  // Initialize global variables
-  let invoices = [];
-  let clientNames = [];
-  let quarterlyBonusPaidStatus = {};
-  const currentUser = localStorage.getItem("currentUser");
+// Initialize global variables
+let invoices = [];
+let clientNames = [];
+let quarterlyBonusPaidStatus = {};
+const currentUser = localStorage.getItem("currentUser");
+
+// Function to set the current user display
+function setCurrentUserDisplay() {
+  // ... (keep the existing implementation)
+}
+
+// Function to initialize the application
+async function init() {
+  // ... (keep the existing implementation)
+}
+
+// Add event listener for DOMContentLoaded
+document.addEventListener("DOMContentLoaded", function () {
+  if (!currentUser) {
+    window.location.href = "login.html";
+  } else {
+    init();
+  }
+});
+
+// Add logout functionality
+document.getElementById("logoutBtn").addEventListener("click", function () {
+  localStorage.removeItem("currentUser");
+  window.location.href = "login.html";
+});
+
+// Add change password functionality
+document
+  .getElementById("changePasswordBtn")
+  .addEventListener("click", function () {
+    localStorage.setItem("changePassword", "true");
+    localStorage.removeItem("currentUser");
+    window.location.href = "login.html";
+  });
+
+// ... (keep all other functions as they are)
 
 // Function to set the current user display
 function setCurrentUserDisplay() {
