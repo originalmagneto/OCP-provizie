@@ -36,9 +36,22 @@ if [[ -z $(git status -s) ]]; then
     exit 1
 fi
 
-# Prompt for a custom comment
-echo "Please enter a comment describing the nature of the changes:"
+# Generate automatic comment
+AUTO_COMMENT="This release includes the following changes:
+
+$CHANGELOG
+
+For more details, please refer to the full changelog."
+
+# Prompt for additional custom comment
+echo "An automatic comment has been generated based on the changes. Would you like to add any additional comments? (Press Enter to skip)"
 read -e CUSTOM_COMMENT
+
+# Combine automatic and custom comments
+FULL_COMMENT="$AUTO_COMMENT
+
+Additional notes:
+$CUSTOM_COMMENT"
 
 # Add all changes
 git add .
@@ -46,31 +59,19 @@ git add .
 # Commit changes
 git commit -m "Release $NEW_VERSION
 
-$CUSTOM_COMMENT
-
-Changelog:
-$CHANGELOG"
+$FULL_COMMENT"
 
 # Create a new tag or update existing one
 git tag -f $NEW_VERSION -m "Release $NEW_VERSION
 
-$CUSTOM_COMMENT
-
-Changelog:
-$CHANGELOG"
+$FULL_COMMENT"
 
 # Push changes and tags to GitHub
 git push origin main
 git push -f origin $NEW_VERSION
 
 # Create or update GitHub release
-gh release create $NEW_VERSION --title "Release $NEW_VERSION" --notes "$CUSTOM_COMMENT
-
-Changelog:
-$CHANGELOG" --target main || gh release edit $NEW_VERSION --title "Release $NEW_VERSION" --notes "$CUSTOM_COMMENT
-
-Changelog:
-$CHANGELOG"
+gh release create $NEW_VERSION --title "Release $NEW_VERSION" --notes "$FULL_COMMENT" --target main || gh release edit $NEW_VERSION --title "Release $NEW_VERSION" --notes "$FULL_COMMENT"
 
 echo "Release $NEW_VERSION has been created and pushed to GitHub"
 
