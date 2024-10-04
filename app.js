@@ -286,20 +286,20 @@ function createReferrerTable(referrer) {
       : referrer === "MKMs"
         ? "black"
         : referrer === "Contax"
-          ? "brown"
+          ? "yellow"
           : "inherit";
 
   let tableHTML = `
         <thead>
             <tr>
-                <th colspan="5"><h3 style="color: ${referrerColor};">${referrer}</h3></th>
+                <th colspan="5"><h3 class="referrer-name ${referrer.toLowerCase()}" style="color: ${referrerColor};">${referrer}</h3></th>
             </tr>
             <tr>
                 <th>Year</th>
-                <th>Q1</th>
-                <th>Q2</th>
-                <th>Q3</th>
-                <th>Q4</th>
+                <th class="quarter-header">Q1 <input type="checkbox" class="paid-checkbox"></th>
+                <th class="quarter-header">Q2 <input type="checkbox" class="paid-checkbox"></th>
+                <th class="quarter-header">Q3 <input type="checkbox" class="paid-checkbox"></th>
+                <th class="quarter-header">Q4 <input type="checkbox" class="paid-checkbox"></th>
             </tr>
         </thead>
         <tbody>
@@ -325,19 +325,8 @@ function createReferrerTable(referrer) {
                     return `
                         <td>
                             <span style="${
-                              isPaid
-                                ? "text-decoration: line-through;"
-                                : "color: red;"
+                              isPaid ? "text-decoration: line-through;" : ""
                             }">€${quarterlyBonus.toFixed(2)}</span>
-                            ${
-                              isEditable
-                                ? `
-                              <input type="checkbox" ${isPaid ? "checked" : ""}
-                                     onchange="updateQuarterlyBonusPaidStatus('${referrer}', ${year}, ${quarter}, this.checked)">
-                            `
-                                : ""
-                            }
-                            <span class="paid-indicator" style="font-weight: bold; color: green; ${isPaid ? "" : "display: none;"}">PAID</span>
                         </td>
                     `;
                   })

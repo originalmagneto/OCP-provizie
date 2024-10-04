@@ -44,12 +44,39 @@ h2 {
 
 .summary-table {
     margin-bottom: 30px;
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 10px;
 }
 
 .summary-table h3 {
     font-size: 1.2rem;
     font-weight: bold;
     margin-bottom: 10px;
+}
+
+.summary-table th,
+.summary-table td {
+    padding: 10px;
+    text-align: left;
+}
+
+.summary-table th {
+    background-color: #f8f9fa;
+    font-weight: bold;
+}
+
+.summary-table .referrer-Contax {
+    color: yellow;
+}
+
+.summary-table .quarter-label {
+    display: flex;
+    align-items: center;
+}
+
+.summary-table .bonus-checkbox {
+    margin-left: 10px;
 }
 
 #currentUserDisplay {
