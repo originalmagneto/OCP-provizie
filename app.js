@@ -412,10 +412,7 @@ function updateQuarterStatus(checkbox, referrer) {
       const year = parseInt(amountSpan.dataset.year);
       try {
         await updateQuarterlyBonusPaidStatus(referrer, year, quarter, isPaid);
-        amountSpan.classList.toggle("paid", isPaid);
-        amountSpan.classList.toggle("unpaid", !isPaid);
-        amountSpan.style.textDecoration = isPaid ? "line-through" : "none";
-        amountSpan.style.color = isPaid ? "green" : "red";
+        updateSpanAppearance(amountSpan, isPaid);
       } catch (error) {
         console.error("Failed to update status:", error);
         throw error; // Propagate the error to be caught in the outer catch block
@@ -429,15 +426,19 @@ function updateQuarterStatus(checkbox, referrer) {
       console.error("Failed to update some or all statuses:", error);
       checkbox.checked = !checkbox.checked; // Revert the checkbox state
       amountSpans.forEach((amountSpan) => {
-        amountSpan.classList.toggle("paid", !isPaid);
-        amountSpan.classList.toggle("unpaid", isPaid);
-        amountSpan.style.textDecoration = !isPaid ? "line-through" : "none";
-        amountSpan.style.color = !isPaid ? "green" : "red";
+        updateSpanAppearance(amountSpan, !isPaid);
       });
       alert(
         "Failed to update some or all quarterly bonus statuses. Please try again.",
       );
     });
+}
+
+function updateSpanAppearance(span, isPaid) {
+  span.classList.toggle("paid", isPaid);
+  span.classList.toggle("unpaid", !isPaid);
+  span.style.textDecoration = isPaid ? "line-through" : "none";
+  span.style.color = isPaid ? "green" : "red";
 }
 
 // Function to calculate quarterly bonus

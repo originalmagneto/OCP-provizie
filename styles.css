@@ -105,6 +105,15 @@ h2 {
     color: #dc3545;
 }
 
+.summary-table .quarter-amount.paid {
+    text-decoration: line-through;
+    color: #28a745;
+}
+
+.summary-table .quarter-amount.unpaid {
+    color: #dc3545;
+}
+
 .summary-table .paid-checkbox {
     margin-left: 5px;
 }
