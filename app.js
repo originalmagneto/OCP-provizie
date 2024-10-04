@@ -99,7 +99,7 @@ async function fetchInvoices() {
 // Function to fetch client names from the server
 async function fetchClientNames() {
   try {
-    const response = await fetch(`${API_BASE_URL}/get-client-names`);
+    const response = await fetch(`${config.API_BASE_URL}/get-client-names`);
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(
@@ -117,7 +117,9 @@ async function fetchClientNames() {
 // Function to fetch quarterly bonus paid status
 async function fetchQuarterlyBonusPaidStatus() {
   try {
-    const response = await fetch(`${API_BASE_URL}/quarterly-bonus-status`);
+    const response = await fetch(
+      `${config.API_BASE_URL}/quarterly-bonus-status`,
+    );
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -162,7 +164,7 @@ async function handleFormSubmit(event) {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/save-invoice`, {
+    const response = await fetch(`${config.API_BASE_URL}/save-invoice`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -180,13 +182,16 @@ async function handleFormSubmit(event) {
     const data = await response.json();
 
     if (newInvoice.clientName && !clientNames.includes(newInvoice.clientName)) {
-      const clientResponse = await fetch(`${API_BASE_URL}/save-client-name`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const clientResponse = await fetch(
+        `${config.API_BASE_URL}/save-client-name`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ clientName: newInvoice.clientName }),
         },
-        body: JSON.stringify({ clientName: newInvoice.clientName }),
-      });
+      );
 
       if (!clientResponse.ok) {
         throw new Error("Failed to save client name");
@@ -465,13 +470,16 @@ async function updateInvoice(event, id) {
   };
 
   try {
-    const response = await fetch(`${API_BASE_URL}/update-invoice/${id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
+    const response = await fetch(
+      `${config.API_BASE_URL}/update-invoice/${id}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ...updatedInvoice, currentUser }),
       },
-      body: JSON.stringify({ ...updatedInvoice, currentUser }),
-    });
+    );
 
     if (!response.ok) {
       const errorData = await response.json();
@@ -494,7 +502,7 @@ async function deleteInvoice(id) {
 
   try {
     const response = await fetch(
-      `http://localhost:3000/delete-invoice/${id}?createdBy=${currentUser}`,
+      `${config.API_BASE_URL}/delete-invoice/${id}?createdBy=${currentUser}`,
       {
         method: "DELETE",
       },
@@ -530,7 +538,7 @@ async function updateQuarterlyBonusPaidStatus(referrer, year, quarter, isPaid) {
 
   try {
     const response = await fetch(
-      `${API_BASE_URL}/update-quarterly-bonus-status`,
+      `${config.API_BASE_URL}/update-quarterly-bonus-status`,
       {
         method: "POST",
         headers: {
@@ -560,23 +568,7 @@ async function updateQuarterlyBonusPaidStatus(referrer, year, quarter, isPaid) {
   }
 }
 
-function updateQuarterStatus(checkbox, referrer) {
-  const quarter = parseInt(checkbox.dataset.quarter);
-  const isPaid = checkbox.checked;
-  const table = checkbox.closest("table");
-  const amountSpans = table.querySelectorAll(
-    `tbody td:nth-child(${quarter + 1}) .quarter-amount`,
-  );
-
-  amountSpans.forEach((amountSpan) => {
-    const year = parseInt(amountSpan.dataset.year);
-    amountSpan.classList.toggle("paid", isPaid);
-    amountSpan.classList.toggle("unpaid", !isPaid);
-    amountSpan.style.textDecoration = isPaid ? "line-through" : "none";
-    amountSpan.style.color = isPaid ? "green" : "red";
-    updateQuarterlyBonusPaidStatus(referrer, year, quarter, isPaid);
-  });
-}
+// This function is a duplicate and has been removed as per the prompt.
 
 // Function to update paid status of an invoice
 async function updatePaidStatus(id, paid) {
