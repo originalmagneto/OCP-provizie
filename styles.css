@@ -50,7 +50,7 @@ h2 {
 }
 
 .summary-table h3 {
-    font-size: 1.2rem;
+    font-size: 1.4rem;
     font-weight: bold;
     margin-bottom: 10px;
     color: white;
@@ -78,7 +78,7 @@ h2 {
 }
 
 .summary-table .referrer-Contax h3 {
-    background-color: yellow;
+    background-color: #F0E68C;
     color: black;
 }
 
@@ -91,13 +91,22 @@ h2 {
     margin-left: 10px;
 }
 
-.summary-table .paid {
+.summary-table .quarter-amount {
+    font-weight: bold;
+    display: block;
+}
+
+.summary-table .quarter-amount.paid {
     text-decoration: line-through;
     color: #28a745;
 }
 
-.summary-table .unpaid {
+.summary-table .quarter-amount.unpaid {
     color: #dc3545;
+}
+
+.summary-table .paid-checkbox {
+    margin-left: 5px;
 }
 
 #currentUserDisplay {

@@ -286,7 +286,7 @@ function createReferrerTable(referrer) {
       : referrer === "MKMs"
         ? "black"
         : referrer === "Contax"
-          ? "yellow"
+          ? "#D4AF37"
           : "inherit";
 
   let tableHTML = `
@@ -296,10 +296,16 @@ function createReferrerTable(referrer) {
             </tr>
             <tr>
                 <th>Year</th>
-                <th class="quarter-header">Q1 <input type="checkbox" class="paid-checkbox" onchange="updateQuarterStatus(this, '${referrer}', 1)"></th>
-                <th class="quarter-header">Q2 <input type="checkbox" class="paid-checkbox" onchange="updateQuarterStatus(this, '${referrer}', 2)"></th>
-                <th class="quarter-header">Q3 <input type="checkbox" class="paid-checkbox" onchange="updateQuarterStatus(this, '${referrer}', 3)"></th>
-                <th class="quarter-header">Q4 <input type="checkbox" class="paid-checkbox" onchange="updateQuarterStatus(this, '${referrer}', 4)"></th>
+                ${[1, 2, 3, 4]
+                  .map(
+                    (quarter) => `
+                    <th class="quarter-header">
+                        Q${quarter}
+                        <input type="checkbox" class="paid-checkbox" data-quarter="${quarter}" onchange="updateQuarterStatus(this, '${referrer}')">
+                    </th>
+                `,
+                  )
+                  .join("")}
             </tr>
         </thead>
         <tbody>
@@ -307,7 +313,7 @@ function createReferrerTable(referrer) {
 
   years.forEach((year) => {
     tableHTML += `
-            <tr>
+            <tr data-year="${year}">
                 <td>${year}</td>
                 ${[1, 2, 3, 4]
                   .map((quarter) => {
@@ -336,7 +342,39 @@ function createReferrerTable(referrer) {
 
   tableHTML += "</tbody>";
   table.innerHTML = tableHTML;
+
+  // Set initial checkbox states
+  [1, 2, 3, 4].forEach((quarter) => {
+    const checkbox = table.querySelector(
+      `th:nth-child(${quarter + 1}) .paid-checkbox`,
+    );
+    const isPaid = years.every((year) =>
+      getQuarterlyBonusPaidStatus(referrer, year, quarter),
+    );
+    if (checkbox) {
+      checkbox.checked = isPaid;
+    }
+  });
+
   return table;
+}
+
+function updateQuarterStatus(checkbox, referrer) {
+  const quarter = parseInt(checkbox.dataset.quarter);
+  const isPaid = checkbox.checked;
+  const table = checkbox.closest("table");
+  const amountSpans = table.querySelectorAll(
+    `tbody td:nth-child(${quarter + 1}) .quarter-amount`,
+  );
+
+  amountSpans.forEach((amountSpan) => {
+    const year = parseInt(amountSpan.dataset.year);
+    amountSpan.classList.toggle("paid", isPaid);
+    amountSpan.classList.toggle("unpaid", !isPaid);
+    amountSpan.style.textDecoration = isPaid ? "line-through" : "none";
+    amountSpan.style.color = isPaid ? "green" : "red";
+    updateQuarterlyBonusPaidStatus(referrer, year, quarter, isPaid);
+  });
 }
 
 // Function to calculate quarterly bonus
@@ -485,6 +523,8 @@ async function updateQuarterlyBonusPaidStatus(referrer, year, quarter, isPaid) {
       if (amountSpan) {
         amountSpan.classList.toggle("paid", isPaid);
         amountSpan.classList.toggle("unpaid", !isPaid);
+        amountSpan.style.textDecoration = isPaid ? "line-through" : "none";
+        amountSpan.style.color = isPaid ? "green" : "red";
       }
     } else {
       throw new Error("Failed to update quarterly bonus status");
@@ -495,12 +535,22 @@ async function updateQuarterlyBonusPaidStatus(referrer, year, quarter, isPaid) {
   }
 }
 
-function updateQuarterStatus(checkbox, referrer, quarter) {
-  const year = checkbox
-    .closest("tr")
-    .querySelector("td:first-child").textContent;
+function updateQuarterStatus(checkbox, referrer) {
+  const quarter = parseInt(checkbox.dataset.quarter);
   const isPaid = checkbox.checked;
-  updateQuarterlyBonusPaidStatus(referrer, parseInt(year), quarter, isPaid);
+  const table = checkbox.closest("table");
+  const amountSpans = table.querySelectorAll(
+    `tbody td:nth-child(${quarter + 1}) .quarter-amount`,
+  );
+
+  amountSpans.forEach((amountSpan) => {
+    const year = parseInt(amountSpan.dataset.year);
+    amountSpan.classList.toggle("paid", isPaid);
+    amountSpan.classList.toggle("unpaid", !isPaid);
+    amountSpan.style.textDecoration = isPaid ? "line-through" : "none";
+    amountSpan.style.color = isPaid ? "green" : "red";
+    updateQuarterlyBonusPaidStatus(referrer, year, quarter, isPaid);
+  });
 }
 
 // Function to update paid status of an invoice
