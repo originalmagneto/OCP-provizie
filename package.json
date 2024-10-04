@@ -3,7 +3,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "version": "0.0.293",
+  "version": "0.0.294",
   "main": "app.js",
   "keywords": [],
   "author": "",
