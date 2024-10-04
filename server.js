@@ -1,11 +1,19 @@
 const express = require("express");
+
+const session = require("express-session");
+
 const path = require("path");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
 const sqlite3 = require("sqlite3").verbose();
 
 const app = express();
-app.use(cors());
+app.use(
+  cors({
+    origin: "*", // Be cautious with this in production
+    credentials: true,
+  }),
+);
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
@@ -304,12 +312,10 @@ app.put("/update-invoice/:id", (req, res) => {
         .json({ success: false, message: "Invoice not found" });
     }
     if (row.referrer !== currentUser) {
-      return res
-        .status(403)
-        .json({
-          success: false,
-          message: "Not authorized to update this invoice",
-        });
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized to update this invoice",
+      });
     }
 
     // If authorized, proceed with the update
@@ -369,12 +375,10 @@ app.delete("/delete-invoice/:id", (req, res) => {
           .json({ success: false, message: "Failed to delete invoice" });
       }
       if (this.changes === 0) {
-        return res
-          .status(404)
-          .json({
-            success: false,
-            message: "Invoice not found or not authorized to delete",
-          });
+        return res.status(404).json({
+          success: false,
+          message: "Invoice not found or not authorized to delete",
+        });
       }
       res.json({ success: true });
     },
@@ -382,6 +386,7 @@ app.delete("/delete-invoice/:id", (req, res) => {
 });
 
 app.get("/quarterly-bonus-status", (req, res) => {
+  console.log("GET /quarterly-bonus-status request received");
   db.all("SELECT * FROM quarterly_bonus_status", [], (err, rows) => {
     if (err) {
       console.error("Error fetching quarterly bonus status:", err);
@@ -411,7 +416,14 @@ app.post("/update-quarterly-bonus-status", (req, res) => {
   });
 });
 
-const PORT = 3000;
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+const PORT = 3001;
+
+// Add general error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send("Something broke!");
+});
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server is running on http://0.0.0.0:${PORT}`);
 });

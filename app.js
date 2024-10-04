@@ -1,3 +1,8 @@
+// Use API_BASE_URL in your fetch calls, for example:
+// fetch(`${API_BASE_URL}/get-invoices`)
+
+const API_BASE_URL = "http://192.168.100.110:3001";
+
 // Initialize global variables
 let invoices = [];
 let clientNames = [];
@@ -7,7 +12,7 @@ const currentUser = localStorage.getItem("currentUser");
 // Function to fetch invoices from the server
 async function fetchInvoices() {
   try {
-    const response = await fetch("http://localhost:3000/get-invoices");
+    const response = await fetch(`${API_BASE_URL}/get-invoices`);
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(
@@ -30,7 +35,7 @@ async function fetchInvoices() {
 // Function to fetch client names from the server
 async function fetchClientNames() {
   try {
-    const response = await fetch("http://localhost:3000/get-client-names");
+    const response = await fetch(`${API_BASE_URL}/get-client-names`);
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(
@@ -48,9 +53,7 @@ async function fetchClientNames() {
 // Function to fetch quarterly bonus paid status
 async function fetchQuarterlyBonusPaidStatus() {
   try {
-    const response = await fetch(
-      `http://localhost:3000/quarterly-bonus-status`,
-    );
+    const response = await fetch(`${API_BASE_URL}/quarterly-bonus-status`);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -95,7 +98,7 @@ async function handleFormSubmit(event) {
   }
 
   try {
-    const response = await fetch("http://localhost:3000/save-invoice", {
+    const response = await fetch(`${API_BASE_URL}/save-invoice`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -113,16 +116,13 @@ async function handleFormSubmit(event) {
     const data = await response.json();
 
     if (newInvoice.clientName && !clientNames.includes(newInvoice.clientName)) {
-      const clientResponse = await fetch(
-        "http://localhost:3000/save-client-name",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ clientName: newInvoice.clientName }),
+      const clientResponse = await fetch(`${API_BASE_URL}/save-client-name`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify({ clientName: newInvoice.clientName }),
+      });
 
       if (!clientResponse.ok) {
         throw new Error("Failed to save client name");
@@ -343,7 +343,7 @@ async function updateInvoice(event, id) {
   };
 
   try {
-    const response = await fetch(`http://localhost:3000/update-invoice/${id}`, {
+    const response = await fetch(`${API_BASE_URL}/update-invoice/${id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -409,7 +409,7 @@ async function updateQuarterlyBonusPaidStatus(referrer, year, quarter, isPaid) {
 
   try {
     const response = await fetch(
-      "http://localhost:3000/update-quarterly-bonus-status",
+      `${API_BASE_URL}/update-quarterly-bonus-status`,
       {
         method: "POST",
         headers: {
@@ -444,7 +444,7 @@ async function updateQuarterlyBonusPaidStatus(referrer, year, quarter, isPaid) {
 async function updatePaidStatus(id, paid) {
   console.log(`Updating paid status for invoice ${id} to ${paid}`);
   try {
-    const response = await fetch(`http://localhost:3000/update-invoice/${id}`, {
+    const response = await fetch(`${API_BASE_URL}/update-invoice/${id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
