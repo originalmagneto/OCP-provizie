@@ -9,6 +9,64 @@ let clientNames = [];
 let quarterlyBonusPaidStatus = {};
 const currentUser = localStorage.getItem("currentUser");
 
+// Function to set the current user display
+function setCurrentUserDisplay() {
+  const currentUserDisplay = document.getElementById("currentUserDisplay");
+  if (currentUserDisplay && currentUser) {
+    let backgroundColor;
+    switch (currentUser) {
+      case "AdvokatiCHZ":
+        backgroundColor = "purple";
+        break;
+      case "MKMs":
+        backgroundColor = "black";
+        break;
+      case "Contax":
+        backgroundColor = "brown";
+        break;
+      default:
+        backgroundColor = "gray";
+    }
+    currentUserDisplay.style.backgroundColor = backgroundColor;
+    currentUserDisplay.style.color = "white";
+    currentUserDisplay.style.fontWeight = "bold";
+    currentUserDisplay.textContent = currentUser;
+  }
+}
+
+// Update init function to call setCurrentUserDisplay
+async function init() {
+  console.log("Initializing application");
+  setCurrentUserDisplay(); // Add this line to call the new function
+  const form = document.getElementById("invoice-form");
+  const yearInput = document.getElementById("year");
+  const monthInput = document.getElementById("month");
+
+  if (form) {
+    form.addEventListener("submit", handleFormSubmit);
+    console.log("Form submit event listener added");
+  } else {
+    console.error("Invoice form not found");
+  }
+
+  // Set default year and month
+  const currentDate = new Date();
+  if (yearInput) yearInput.value = currentDate.getFullYear();
+  if (monthInput) monthInput.value = currentDate.getMonth() + 1; // JavaScript months are 0-indexed
+
+  try {
+    await Promise.all([
+      fetchInvoices(),
+      fetchClientNames(),
+      fetchQuarterlyBonusPaidStatus(),
+    ]);
+    renderSummaryTables();
+  } catch (error) {
+    console.error("Error initializing application:", error);
+    alert("Failed to initialize application. Please try refreshing the page.");
+  }
+}
+
 // Function to fetch invoices from the server
 async function fetchInvoices() {
   try {
