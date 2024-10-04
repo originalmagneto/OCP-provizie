@@ -32,19 +32,30 @@ CHANGELOG=$(git log $(git describe --tags --abbrev=0 2>/dev/null)..HEAD --pretty
 
 # Check if there are any changes to commit
 if [[ -z $(git status -s) ]]; then
-    echo "No changes to commit. Aborting release."
-    exit 1
-fi
+    echo "No changes detected. Creating release without new commit."
+    # Generate automatic comment for no changes
+    AUTO_COMMENT="This is a maintenance release with no code changes.
 
-# Generate automatic comment
-AUTO_COMMENT="This release includes the following changes:
+For more details, please refer to the full changelog."
+else
+    # Generate automatic comment for changes
+    AUTO_COMMENT="This release includes the following changes:
 
 $CHANGELOG
 
 For more details, please refer to the full changelog."
 
+    # Add all changes
+    git add .
+
+    # Commit changes
+    git commit -m "Release $NEW_VERSION
+
+$AUTO_COMMENT"
+fi
+
 # Prompt for additional custom comment
-echo "An automatic comment has been generated based on the changes. Would you like to add any additional comments? (Press Enter to skip)"
+echo "An automatic comment has been generated. Would you like to add any additional comments? (Press Enter to skip)"
 read -e CUSTOM_COMMENT
 
 # Combine automatic and custom comments
@@ -52,14 +63,6 @@ FULL_COMMENT="$AUTO_COMMENT
 
 Additional notes:
 $CUSTOM_COMMENT"
-
-# Add all changes
-git add .
-
-# Commit changes
-git commit -m "Release $NEW_VERSION
-
-$FULL_COMMENT"
 
 # Create a new tag or update existing one
 git tag -f $NEW_VERSION -m "Release $NEW_VERSION

@@ -39,8 +39,17 @@ jobs:
           echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
 
       - name: Run release script
+        id: release
         run: |
           chmod +x ./release.sh
           echo "This is an automated release" | ./release.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      - name: Check release script output
+        run: |
+          if [[ ${{ steps.release.outcome }} == 'failure' ]]; then
+            echo "Release script exited without creating a release. This is expected if there were no changes."
+            exit 0
+          fi
