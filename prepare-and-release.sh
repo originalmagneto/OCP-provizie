@@ -1,5 +1,49 @@
 #!/bin/bash
 
+set -e
+
+# Function to handle merge conflicts
+handle_merge_conflicts() {
+    echo "Merge conflicts detected. Please follow these steps:"
+    echo "1. Open the conflicting files and resolve the conflicts manually."
+    echo "2. After resolving conflicts, stage the changes:"
+    echo "   git add ."
+    echo "3. Commit the merged changes:"
+    echo "   git commit -m 'Resolve merge conflicts'"
+    echo "4. Then run this script again."
+    exit 1
+}
+
+# Fetch the latest changes
+git fetch origin
+
+# Check if there are diverged branches
+if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
+    echo "Local and remote branches have diverged. Attempting to merge..."
+    if ! git merge --no-commit --no-ff origin/main; then
+        handle_merge_conflicts
+    fi
+fi
+
+# Check for unresolved conflicts
+if [[ -n $(git ls-files -u) ]]; then
+    handle_merge_conflicts
+fi
+
+# Function to run the release script only once
+run_release_once() {
+    if [ ! -f ".release_lock" ]; then
+        touch .release_lock
+        ./release.sh
+        rm .release_lock
+    else
+        echo "Release process is already running. Skipping additional release."
+    fi
+}
+
+# Replace direct call to release.sh with this function
+alias release_script=run_release_once
+
 # Check if app.js has changed
 echo "Checking app.js status..."
 if git diff --quiet HEAD^..HEAD -- app.js; then
