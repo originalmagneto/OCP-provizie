@@ -190,6 +190,31 @@ h2 {
 }
 
 #addInvoiceBox {
+    width: 30%;
+    max-width: none;
+}
+
+#summaryBox {
+    width: 70%;
+}
+
+.dashboard {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 20px;
+}
+
+@media (max-width: 768px) {
+    #addInvoiceBox,
+    #summaryBox {
+        width: 100%;
+    }
+    .dashboard {
+        flex-wrap: wrap;
+    }
+}
+
+#addInvoiceBox {
     width: 40%;
     max-width: none;
 }
