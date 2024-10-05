@@ -266,8 +266,108 @@ function editInvoice(id) {
 }
 
 async function handleEditSubmit(event, id) {
+  event.preventDefault();
+  console.log("Edit form submission started");
 
-  async function deleteInvoice(id) {
+  try {
+    const form = event.target;
+    const invoiceData = {
+      year: form.year.value,
+      month: form.month.value,
+      clientName: form["client-name"].value,
+      amount: parseFloat(form["invoice-amount"].value),
+      referrer: currentUser,
+      bonusPercentage: parseFloat(form["referral-bonus"].value),
+      paid: form["paid-status"].checked,
+      createdBy: currentUser,
+    };
+
+    console.log("Updated invoice data:", invoiceData);
+
+    const token = localStorage.getItem("authToken");
+    const headers = {
+      "Content-Type": "application/json",
+      "Authorization": token ? `Bearer ${token}` : "",
+    };
+
+    const response = await fetch(
+      `${config.API_BASE_URL}/update-invoice/${id}`,
+      {
+        method: "PUT",
+        headers: headers,
+        body: JSON.stringify(invoiceData),
+      },
+    );
+
+    console.log("Response received:", response);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.message || "Unknown error"}`);
+    }
+
+    const result = await response.json();
+    console.log("Invoice updated successfully:", result);
+
+    await fetchInvoices();
+    renderInvoiceList();
+    renderSummaryTables();
+
+    // Reset form to its original state
+    form.reset();
+    form.onsubmit = handleFormSubmit;
+    const submitButton = form.querySelector('button[type="submit"]');
+    submitButton.textContent = "Add Invoice";
+  } catch (error) {
+    console.error("Error in form submission:", error);
+    alert(`Failed to update invoice: ${error.message}`);
+  }
+}
+
+async function deleteInvoice(id) {
+  const invoice = invoices.find((inv) => inv.id === id);
+  if (!invoice || invoice.createdBy !== currentUser) {
+    alert("You are not authorized to delete this invoice");
+    return;
+  }
+
+  if (!confirm("Are you sure you want to delete this invoice?")) {
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem("authToken");
+    const response = await fetch(
+      `${config.API_BASE_URL}/delete-invoice/${id}`,
+      {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": token ? `Bearer ${token}` : "",
+        },
+        body: JSON.stringify({ currentUser: currentUser }),
+      },
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    if (result.success) {
+      await fetchInvoices();
+      renderInvoiceList();
+      renderSummaryTables();
+      alert("Invoice deleted successfully");
+    } else {
+      throw new Error(result.message || "Failed to delete invoice");
+    }
+  } catch (error) {
+    console.error("Error deleting invoice:", error);
+    alert(`Failed to delete invoice: ${error.message}`);
+  }
+}
     const invoice = invoices.find((inv) => inv.id === id);
     if (!invoice || invoice.createdBy !== currentUser) {
       alert("You are not authorized to delete this invoice");
@@ -591,21 +691,7 @@ function calculateQuarterlyBonus(invoices, year, quarter) {
       0,
     );
 }
-  const startMonth = (quarter - 1) * 3 + 1;
-  const endMonth = quarter * 3;
 
-  return invoices
-    .filter(
-      (invoice) =>
-        invoice.year === year &&
-        invoice.month >= startMonth &&
-        invoice.month <= endMonth,
-    )
-    .reduce(
-      (total, invoice) => total + invoice.amount * invoice.bonusPercentage,
-      0,
-    );
-}
 
 // ===== Summary Table Rendering =====
 function renderSummaryTables() {
@@ -685,83 +771,7 @@ function createReferrerTable(referrer, referrerInvoices) {
 
   return table;
 }
-  const summaryTablesContainer = getElement(
-    "summary-tables",
-    "Summary tables container not found",
-  );
-  summaryTablesContainer.innerHTML = "";
 
-  const referrers = [...new Set(invoices.map((invoice) => invoice.referrer))];
-  referrers.forEach((referrer) =>
-    summaryTablesContainer.appendChild(createReferrerTable(referrer)),
-  );
-}
-
-function createReferrerTable(referrer) {
-  const table = document.createElement("table");
-  table.className = `table table-sm summary-table ${referrer.toLowerCase().replace(/\s+/g, "-")}`;
-
-  const referrerInvoices = invoices.filter(
-    (invoice) => invoice.referrer === referrer,
-  );
-  const years = [
-    ...new Set(referrerInvoices.map((invoice) => invoice.year)),
-  ].sort((a, b) => b - a);
-
-  const referrerColor =
-    {
-      AdvokatiCHZ: "purple",
-      MKMs: "black",
-      Contax: "#D4AF37",
-    }[referrer] || "inherit";
-
-  const thead = table.createTHead();
-  const headerRow1 = thead.insertRow();
-  const headerCell1 = headerRow1.insertCell();
-  headerCell1.colSpan = 5;
-  headerCell1.className = "referrer-header";
-  headerCell1.style.backgroundColor = referrerColor;
-  headerCell1.style.color = "white";
-  headerCell1.textContent = referrer;
-
-  const headerRow2 = thead.insertRow();
-  headerRow2.insertCell().textContent = "Year";
-
-  for (let quarter = 1; quarter <= 4; quarter++) {
-    const th = headerRow2.insertCell();
-    th.className = "quarter-header";
-    th.innerHTML = `Q${quarter} <input type="checkbox" class="paid-checkbox" data-quarter="${quarter}" data-referrer="${referrer}" ${
-      referrer === currentUser ? "" : "disabled"
-    }>`;
-
-    const checkbox = th.querySelector(".paid-checkbox");
-    checkbox.addEventListener("change", (event) =>
-      updateQuarterStatus(event.target, referrer),
-    );
-  }
-
-  const tbody = table.createTBody();
-  years.forEach((year) => {
-    const row = tbody.insertRow();
-    const yearCell = row.insertCell();
-    yearCell.textContent = year;
-
-    for (let quarter = 1; quarter <= 4; quarter++) {
-      const cell = row.insertCell();
-      const quarterlyBonus = calculateQuarterlyBonus(
-        referrerInvoices,
-        year,
-        quarter,
-      );
-      const isPaid = getQuarterlyBonusPaidStatus(referrer, year, quarter);
-      cell.innerHTML = `<span class="quarter-amount ${
-        isPaid ? "paid" : "unpaid"
-      }">${quarterlyBonus.toFixed(2)}</span>`;
-    }
-  });
-
-  return table;
-}
 
 async function updatePaidStatus(id, paid) {
   try {
