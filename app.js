@@ -188,7 +188,7 @@ async function handleFormSubmit(event) {
   ) {
     console.error("Invalid input values");
     alert("Please fill in all fields with valid values.");
-    return;
+    throw new Error("Invalid input values");
   }
 
   try {
@@ -612,6 +612,61 @@ function calculateQuarterlyBonus(invoices, year, quarter) {
 }
 
 function editInvoice(id) {
+  const invoice = invoices.find((inv) => inv.id === id);
+  if (!invoice) return;
+
+  // Populate form with invoice data for editing
+  document.getElementById("year").value = invoice.year;
+  document.getElementById("month").value = invoice.month;
+  document.getElementById("client-name").value = invoice.clientName;
+  document.getElementById("invoice-amount").value = invoice.amount;
+  document.getElementById("referral-bonus").value = invoice.bonusPercentage;
+  document.getElementById("paid-status").checked = invoice.paid;
+
+  // Change form submission to update instead of create
+  const form = document.getElementById("invoice-form");
+  form.onsubmit = (e) => updateInvoice(e, id);
+
+  // Scroll to the form
+  form.scrollIntoView({ behavior: 'smooth' });
+}
+
+function updateInvoice(event, id) {
+  event.preventDefault();
+  const updatedInvoice = {
+    year: parseInt(document.getElementById("year").value),
+    month: parseInt(document.getElementById("month").value),
+    clientName: document.getElementById("client-name").value.trim(),
+    amount: parseFloat(document.getElementById("invoice-amount").value),
+    referrer: currentUser,
+    bonusPercentage: parseFloat(document.getElementById("referral-bonus").value),
+    paid: document.getElementById("paid-status").checked,
+    createdBy: currentUser,
+  };
+
+  fetch(`${config.API_BASE_URL}/update-invoice/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ ...updatedInvoice, currentUser }),
+  })
+    .then(response => {
+      if (!response.ok) throw new Error('Failed to update invoice');
+      return response.json();
+    })
+    .then(() => {
+      fetchInvoices(); // Refresh the invoice list
+      // Reset form to create mode
+      const form = document.getElementById("invoice-form");
+      form.onsubmit = handleFormSubmit;
+      form.reset();
+    })
+    .catch(error => {
+      console.error("Error updating invoice:", error);
+      alert(`Failed to update invoice: ${error.message}`);
+    });
+}
   const invoice = invoices.find((inv) => inv.id === id);
   if (!invoice) return;
 
