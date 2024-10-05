@@ -1,6 +1,14 @@
 // Use API_BASE_URL in your fetch calls, for example:
 // fetch(`${config.API_BASE_URL}/get-invoices`) TESTIK
 
+console.log("Debugging: Checking for incorrect return statements");
+const lines = document.currentScript.textContent.split('\n');
+lines.forEach((line, index) => {
+    if (line.trim().startsWith('return') && !line.trim().startsWith('return;')) {
+        console.warn(`Potential issue on line ${index + 1}: ${line.trim()}`);
+    }
+});
+
 const config = {
   API_BASE_URL: "https://ocp-provizie-final.onrender.com",
 };
