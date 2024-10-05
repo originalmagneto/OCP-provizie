@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# Add hidden files and directories
+shopt -s dotglob
+
+# Exclude .git and node_modules
+GLOBIGNORE=".git:node_modules"
+
 echo "Creating a temporary branch..."
 git checkout -b temp_sync_branch
 
