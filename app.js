@@ -497,6 +497,156 @@ async function editInvoice(id) {
   const form = document.getElementById("invoice-form");
   form.onsubmit = (e) => updateInvoice(e, id);
 
+  // Add a data attribute to the form to indicate we're in edit mode
+  form.setAttribute('data-edit-mode', 'true');
+
+  // Scroll to the form
+  form.scrollIntoView({ behavior: "smooth" });
+}
+
+async function updateInvoice(event, id) {
+  event.preventDefault();
+  const updatedInvoice = {
+    year: parseInt(document.getElementById("year").value),
+    month: parseInt(document.getElementById("month").value),
+    clientName: document.getElementById("client-name").value.trim(),
+    amount: parseFloat(document.getElementById("invoice-amount").value),
+    referrer: currentUser,
+    bonusPercentage: parseFloat(
+      document.getElementById("referral-bonus").value,
+    ),
+    paid: document.getElementById("paid-status").checked,
+    createdBy: currentUser,
+  };
+
+  try {
+    const response = await fetch(
+      `${config.API_BASE_URL}/update-invoice/${id}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ...updatedInvoice, currentUser }),
+      },
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to update invoice");
+    }
+
+    await fetchInvoices();
+    // Reset form to create mode
+    const form = document.getElementById("invoice-form");
+    form.onsubmit = handleFormSubmit;
+    form.removeAttribute('data-edit-mode');
+    form.reset();
+    alert("Invoice updated successfully");
+  } catch (error) {
+    console.error("Error updating invoice:", error);
+    alert(`Failed to update invoice: ${error.message}`);
+  }
+}
+
+// Modify handleFormSubmit to check for edit mode
+async function handleFormSubmit(event) {
+  event.preventDefault();
+  const form = event.target;
+
+  // Check if we're in edit mode
+  if (form.getAttribute('data-edit-mode') === 'true') {
+    console.error("Form is in edit mode but handleFormSubmit was called");
+    return; // Don't proceed with creating a new invoice
+  }
+
+  console.log("Form submitted");
+
+  const newInvoice = {
+    year: parseInt(document.getElementById("year").value),
+    month: parseInt(document.getElementById("month").value),
+    clientName: document.getElementById("client-name").value.trim(),
+    amount: parseFloat(document.getElementById("invoice-amount").value),
+    referrer: currentUser,
+    bonusPercentage: parseFloat(
+      document.getElementById("referral-bonus").value,
+    ),
+    paid: document.getElementById("paid-status").checked,
+    createdBy: currentUser,
+  };
+
+  console.log("New invoice:", newInvoice);
+
+  if (
+    isNaN(newInvoice.year) ||
+    isNaN(newInvoice.month) ||
+    isNaN(newInvoice.amount) ||
+    isNaN(newInvoice.bonusPercentage)
+  ) {
+    console.error("Invalid input values");
+    alert("Please fill in all fields with valid values.");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${config.API_BASE_URL}/save-invoice`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(newInvoice),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(
+        `Server error: ${errorData.error}. Details: ${errorData.details}`,
+      );
+    }
+
+    const data = await response.json();
+
+    if (newInvoice.clientName && !clientNames.includes(newInvoice.clientName)) {
+      await fetch(`${config.API_BASE_URL}/save-client-name`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ clientName: newInvoice.clientName }),
+      });
+    }
+
+    await fetchInvoices();
+    await fetchClientNames();
+
+    // Reset form
+    event.target.reset();
+    // Set default year and month
+    const currentDate = new Date();
+    document.getElementById("year").value = currentDate.getFullYear();
+    document.getElementById("month").value = currentDate.getMonth() + 1;
+
+    console.log("Form reset (except year and month)");
+  } catch (error) {
+    console.error("Error saving data:", error);
+    alert(`An error occurred while saving the invoice: ${error.message}`);
+  }
+}
+  const invoice = invoices.find((inv) => inv.id === parseInt(id));
+  if (!invoice) return;
+
+  // Populate form with invoice data for editing
+  document.getElementById("year").value = invoice.year;
+  document.getElementById("month").value = invoice.month;
+  document.getElementById("client-name").value = invoice.clientName;
+  document.getElementById("invoice-amount").value = invoice.amount;
+  document.getElementById("referral-bonus").value = invoice.bonusPercentage;
+  document.getElementById("paid-status").checked = invoice.paid;
+
+  // Change form submission to update instead of create
+  const form = document.getElementById("invoice-form");
+  form.onsubmit = (e) => updateInvoice(e, id);
+
   // Scroll to the form
   form.scrollIntoView({ behavior: "smooth" });
 }
