@@ -1,4 +1,11 @@
 body {
+
+        .paid-text {
+        text-decoration: line-through;
+        color: green;
+    }
+
+
     background-color: #f8f9fa;
 }
 

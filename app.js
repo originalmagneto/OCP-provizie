@@ -194,6 +194,48 @@ async function handleFormSubmit(event) {
     console.log("Invoice saved successfully:", result);
 
     await fetchInvoices();
+    renderInvoiceList();  // Refresh the invoice list
+    renderSummaryTables();
+    form.reset();
+  } catch (error) {
+    console.error("Error in form submission:", error);
+    alert("Failed to save invoice. Please check the console for details.");
+  }
+}
+  event.preventDefault();
+  console.log("Form submission started");
+
+  try {
+    const form = event.target;
+    const invoiceData = {
+      year: form.year.value,
+      month: form.month.value,
+      clientName: form["client-name"].value,
+      amount: parseFloat(form["invoice-amount"].value),
+      referrer: currentUser,
+      bonusPercentage: parseFloat(form["referral-bonus"].value),
+      paid: form["paid-status"].checked,
+      createdBy: currentUser,
+    };
+
+    console.log("Invoice data:", invoiceData);
+
+    const response = await fetch(`${config.API_BASE_URL}/save-invoice`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(invoiceData),
+    });
+
+    console.log("Response received:", response);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log("Invoice saved successfully:", result);
+
+    await fetchInvoices();
     form.reset();
   } catch (error) {
     console.error("Error in form submission:", error);
@@ -203,6 +245,38 @@ async function handleFormSubmit(event) {
 
 // ===== Invoice Rendering =====
 function renderInvoiceList() {
+  const invoiceList = getElement(
+    "invoice-list",
+    "Invoice list table not found",
+  );
+
+  // Sort invoices by id in descending order (assuming higher id means more recently added)
+  const sortedInvoices = [...invoices].sort((a, b) => b.id - a.id);
+
+  invoiceList.innerHTML = sortedInvoices
+    .map(
+      (invoice) => `
+        <tr data-id="${invoice.id}" class="${invoice.paid ? "paid-invoice" : "unpaid-invoice"}">
+          <td>${invoice.year}</td>
+          <td>${invoice.month}</td>
+          <td>${invoice.clientName}</td>
+          <td>${invoice.amount.toFixed(2)}</td>
+          <td>${invoice.referrer}</td>
+          <td>${(invoice.bonusPercentage * 100).toFixed(0)}%</td>
+          <td>
+            <input type="checkbox" ${invoice.paid ? "checked" : ""} onchange="updatePaidStatus(${invoice.id}, this.checked)" ${invoice.createdBy !== currentUser ? "disabled" : ""}>
+          </td>
+          <td>
+            ${invoice.createdBy === currentUser ?
+              `<button onclick="editInvoice(${invoice.id})">Edit</button>
+               <button onclick="deleteInvoice(${invoice.id})">Delete</button>`
+              : ''}
+          </td>
+        </tr>
+      `,
+    )
+    .join("");
+}
   const invoiceList = getElement(
     "invoice-list",
     "Invoice list table not found",
@@ -354,6 +428,47 @@ function createReferrerTable(referrer) {
 }
 
 async function updatePaidStatus(id, paid) {
+  try {
+    const invoice = invoices.find(inv => inv.id === id);
+    if (!invoice || invoice.createdBy !== currentUser) {
+      throw new Error('You are not authorized to update this invoice');
+    }
+
+    const response = await fetch(
+      `${config.API_BASE_URL}/update-invoice/${id}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          paid: paid,
+          currentUser: currentUser,
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    if (result.success) {
+      invoice.paid = paid;
+      renderInvoiceList();
+      renderSummaryTables();
+    } else {
+      throw new Error("Failed to update invoice paid status");
+    }
+  } catch (error) {
+    console.error("Error updating paid status:", error);
+    alert(error.message);
+    const checkbox = document.querySelector(
+      `tr[data-id="${id}"] input[type="checkbox"]`,
+    );
+    if (checkbox) {
+      checkbox.checked = !paid;
+    }
+  }
+}
   try {
     const response = await fetch(
       `${config.API_BASE_URL}/update-invoice/${id}`,
