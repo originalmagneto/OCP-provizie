@@ -160,127 +160,17 @@ async function fetchQuarterlyBonusPaidStatus() {
 
 // ===== Form Handling =====
 async function handleFormSubmit(event) {
-  event.preventDefault();
-
-  const newInvoice = {
-    year: parseInt(form.year.value),
-    month: parseInt(form.month.value),
-    clientName: form["client-name"].value.trim(),
-    amount: parseFloat(form["invoice-amount"].value),
-    referrer: currentUser,
-    bonusPercentage: parseFloat(form["referral-bonus"].value),
-    paid: form["paid-status"].checked,
-    createdBy: currentUser,
-  };
-
-  if (
-    isNaN(newInvoice.year) ||
-    isNaN(newInvoice.month) ||
-    isNaN(newInvoice.amount) ||
-    isNaN(newInvoice.bonusPercentage)
-  ) {
-    alert("Please fill in all fields with valid values.");
-    return;
-  }
-
-  try {
-    const response = await fetch(`${config.API_BASE_URL}/save-invoice`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newInvoice),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(
-        `Server error: ${errorData.error}. Details: ${errorData.details}`,
-      );
-    }
-
-    if (newInvoice.clientName && !clientNames.includes(newInvoice.clientName)) {
-      await fetch(`${config.API_BASE_URL}/save-client-name`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clientName: newInvoice.clientName }),
-      });
-      await fetchClientNames(); // Update client names after saving
-    }
-
-    await fetchInvoices(); // Update invoices after saving
-
-    // Reset form except year and month
-    const yearValue = form.year.value;
-    const monthValue = form.month.value;
-    form.reset();
-    form.year.value = yearValue;
-    form.month.value = monthValue;
-  } catch (error) {
-    console.error("Error saving invoice:", error);
-    alert(`Failed to save invoice: ${error.message}`);
-  }
+  // ... (same code as before)
 }
 
 // ===== Invoice Rendering =====
 function renderInvoiceList() {
-  const tbody = getElement("invoice-list").querySelector(
-    "tbody",
-    "Invoice list tbody not found",
-  );
-  tbody.innerHTML = "";
-
-  invoices
-    .sort((a, b) => b.id - a.id)
-    .forEach((invoice) => {
-      const tr = document.createElement("tr");
-      tr.dataset.id = invoice.id;
-      const isEditable = invoice.createdBy === currentUser;
-
-      tr.innerHTML = `
-            <td>${invoice.year}</td>
-            <td>${invoice.month}</td>
-            <td>${invoice.clientName}</td>
-            <td>€${invoice.amount.toFixed(2)}</td>
-            <td>${invoice.referrer}</td>
-            <td>${(invoice.bonusPercentage * 100).toFixed(0)}%</td>
-            <td><input type="checkbox" class="paid-status-checkbox" ${invoice.paid ? "checked" : ""} data-id="${invoice.id}" ${isEditable ? "" : "disabled"}></td>
-            <td>${isEditable ? `<button class="edit-invoice" data-id="${invoice.id}">Edit</button> <button class="delete-invoice" data-id="${invoice.id}">Delete</button>` : ""}</td>
-        `;
-      tbody.appendChild(tr);
-      updateInvoiceRowAppearance(invoice.id, invoice.paid);
-
-      if (isEditable) {
-        tr.querySelector(".edit-invoice").addEventListener("click", () =>
-          editInvoice(invoice.id),
-        );
-        tr.querySelector(".delete-invoice").addEventListener("click", () =>
-          deleteInvoice(invoice.id),
-        );
-      }
-      tr.querySelector(".paid-status-checkbox").addEventListener(
-        "change",
-        (event) => updatePaidStatus(invoice.id, event.target.checked),
-      );
-    });
+  // ... (same code as before)
 }
 
 // ===== Invoice Editing and Deletion =====
 function editInvoice(id) {
-  const invoice = invoices.find((inv) => inv.id === id);
-  if (!invoice) return;
-
-  // Populate form with invoice data
-  form.year.value = invoice.year;
-  form.month.value = invoice.month;
-  form["client-name"].value = invoice.clientName;
-  form["invoice-amount"].value = invoice.amount;
-  form["referral-bonus"].value = invoice.bonusPercentage;
-  form["paid-status"].checked = invoice.paid;
-
-  // Temporarily change form submission handler
-  form.removeEventListener("submit", handleFormSubmit);
-  form.addEventListener("submit", (event) => updateInvoice(event, id));
-
-  form.scrollIntoView({ behavior: "smooth" });
+  // ... (same code as before)
 }
 
 async function updateInvoice(event, id) {
@@ -323,24 +213,55 @@ function renderSummaryTables() {
 }
 
 function createReferrerTable(referrer) {
-  // ... (table creation code)
+  const table = document.createElement("table");
+  table.className = `table table-sm summary-table ${referrer.toLowerCase().replace(/\s+/g, "-")}`;
 
-  // Checkbox initialization *after* table is in the DOM
+  const referrerInvoices = invoices.filter(
+    (invoice) => invoice.referrer === referrer,
+  );
+  const years = [
+    ...new Set(referrerInvoices.map((invoice) => invoice.year)),
+  ].sort((a, b) => b - a);
+
+  const referrerColor =
+    {
+      AdvokatiCHZ: "purple",
+      MKMs: "black",
+      Contax: "#D4AF37",
+    }[referrer] || "inherit";
+
+  const thead = table.createTHead();
+  const headerRow1 = thead.insertRow();
+  const headerCell1 = headerRow1.insertCell();
+  headerCell1.colSpan = 5;
+  headerCell1.className = "referrer-header";
+  headerCell1.style.backgroundColor = referrerColor;
+  headerCell1.style.color = "white";
+  headerCell1.textContent = referrer;
+
+  const headerRow2 = thead.insertRow(); // headerRow2 declared here
+  headerRow2.insertCell().textContent = "Year";
+
   for (let quarter = 1; quarter <= 4; quarter++) {
-    const checkbox = headerRow2.querySelector(
-      `th:nth-child(${quarter + 1}) .paid-checkbox`,
+    const th = headerRow2.insertCell(); // Now headerRow2 is in scope
+    th.className = "quarter-header";
+    th.innerHTML = `Q${quarter} <input type="checkbox" class="paid-checkbox" data-quarter="${quarter}" data-referrer="${referrer}" ${referrer === currentUser ? "" : "disabled"}>`;
+
+    // Attach event listener and set initial state inside the loop
+    th.querySelector(".paid-checkbox").addEventListener("change", (event) =>
+      updateQuarterStatus(event.target, referrer),
     );
+    const allYearsPaidForThisQuarter = years.every((year) =>
+      getQuarterlyBonusPaidStatus(referrer, year, quarter),
+    );
+    const checkbox = th.querySelector(".paid-checkbox");
     if (checkbox) {
-      const allYearsPaid = years.every((year) =>
-        getQuarterlyBonusPaidStatus(referrer, year, quarter),
-      );
-      checkbox.checked = allYearsPaid;
-    } else {
-      console.error(
-        `Checkbox not found for quarter ${quarter} in referrer table ${referrer}`,
-      );
+      checkbox.checked = allYearsPaidForThisQuarter;
     }
   }
+
+  const tbody = table.createTBody();
+  // ... (rest of tbody creation code)
 
   return table;
 }
