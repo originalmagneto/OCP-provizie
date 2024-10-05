@@ -99,6 +99,17 @@ function updateInvoiceRowAppearance(id, paid) {
     row.classList.toggle("unpaid-invoice", !paid);
     row.querySelectorAll("td:not(:last-child)").forEach((td) => {
       td.classList.toggle("paid-text", paid);
+      td.style.color = paid ? "green" : "";
+      td.style.textDecoration = paid ? "line-through" : "none";
+    });
+  }
+}
+  const row = document.querySelector(`tr[data-id="${id}"]`);
+  if (row) {
+    row.classList.toggle("paid-invoice", paid);
+    row.classList.toggle("unpaid-invoice", !paid);
+    row.querySelectorAll("td:not(:last-child)").forEach((td) => {
+      td.classList.toggle("paid-text", paid);
     });
   }
 }
@@ -457,6 +468,49 @@ function createReferrerTable(referrer) {
 }
 
 async function updatePaidStatus(id, paid) {
+  try {
+    const invoice = invoices.find((inv) => inv.id === id);
+    if (!invoice || invoice.createdBy !== currentUser) {
+      throw new Error("You are not authorized to update this invoice");
+    }
+
+    const response = await fetch(
+      `${config.API_BASE_URL}/update-invoice/${id}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          paid: paid,
+          currentUser: currentUser,
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    if (result.success) {
+      invoice.paid = paid;
+      updateInvoiceRowAppearance(id, paid);
+      await fetchInvoices(); // Fetch updated invoices
+      renderInvoiceList(); // Re-render the invoice list
+      renderSummaryTables(); // Update summary tables
+    } else {
+      throw new Error("Failed to update invoice paid status");
+    }
+  } catch (error) {
+    console.error("Error updating paid status:", error);
+    alert(error.message);
+    const checkbox = document.querySelector(
+      `tr[data-id="${id}"] input[type="checkbox"]`,
+    );
+    if (checkbox) {
+      checkbox.checked = !paid;
+    }
+  }
+}
   try {
     const invoice = invoices.find((inv) => inv.id === id);
     if (!invoice || invoice.createdBy !== currentUser) {
