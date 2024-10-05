@@ -314,6 +314,67 @@ function renderInvoiceList() {
   }
 
   tbody.innerHTML = "";
+  invoices.sort((a, b) => b.id - a.id); // Sort invoices by id in descending order
+  invoices.forEach((invoice) => {
+    const tr = document.createElement("tr");
+    tr.setAttribute("data-id", invoice.id);
+    const isEditable = invoice.createdBy === currentUser;
+    tr.innerHTML = `
+            <td>${invoice.year}</td>
+            <td>${invoice.month}</td>
+            <td>${invoice.clientName}</td>
+            <td>€${invoice.amount.toFixed(2)}</td>
+            <td>${invoice.referrer}</td>
+            <td>${(invoice.bonusPercentage * 100).toFixed(0)}%</td>
+            <td>
+                <input type="checkbox" class="paid-status-checkbox" ${invoice.paid ? "checked" : ""}
+                       data-id="${invoice.id}"
+                       ${isEditable ? "" : "disabled"}>
+            </td>
+            <td>
+                ${
+                  isEditable
+                    ? `
+                    <button class="edit-invoice" data-id="${invoice.id}">Edit</button>
+                    <button class="delete-invoice" data-id="${invoice.id}">Delete</button>
+                `
+                    : ""
+                }
+            </td>
+        `;
+    tbody.appendChild(tr);
+    updateInvoiceRowAppearance(invoice.id, invoice.paid);
+  });
+
+  // Add event listeners
+  tbody.querySelectorAll(".paid-status-checkbox").forEach((checkbox) => {
+    checkbox.addEventListener("change", function () {
+      updatePaidStatus(this.dataset.id, this.checked);
+    });
+  });
+
+  tbody.querySelectorAll(".edit-invoice").forEach((button) => {
+    button.addEventListener("click", function () {
+      editInvoice(this.dataset.id);
+    });
+  });
+
+  tbody.querySelectorAll(".delete-invoice").forEach((button) => {
+    button.addEventListener("click", function () {
+      deleteInvoice(this.dataset.id);
+    });
+  });
+
+  console.log("Invoice list rendered successfully");
+}
+  console.log("Rendering invoice list");
+  const tbody = document.querySelector("#invoice-list tbody");
+  if (!tbody) {
+    console.error("Invoice list tbody not found");
+    return;
+  }
+
+  tbody.innerHTML = "";
   invoices.forEach((invoice) => {
     const tr = document.createElement("tr");
     tr.setAttribute("data-id", invoice.id);
@@ -620,6 +681,61 @@ function updateInvoice(event, id) {
   // Change form submission to update instead of create
   const form = document.getElementById("invoice-form");
   form.onsubmit = (e) => updateInvoice(e, id);
+
+  // Scroll to the form
+  form.scrollIntoView({ behavior: 'smooth' });
+}
+
+function updateInvoice(event, id) {
+  event.preventDefault();
+  const updatedInvoice = {
+    year: parseInt(document.getElementById("year").value),
+    month: parseInt(document.getElementById("month").value),
+    clientName: document.getElementById("client-name").value.trim(),
+    amount: parseFloat(document.getElementById("invoice-amount").value),
+    referrer: currentUser,
+    bonusPercentage: parseFloat(document.getElementById("referral-bonus").value),
+    paid: document.getElementById("paid-status").checked,
+    createdBy: currentUser,
+  };
+
+  fetch(`${config.API_BASE_URL}/update-invoice/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ ...updatedInvoice, currentUser }),
+  })
+    .then(response => {
+      if (!response.ok) throw new Error('Failed to update invoice');
+      return response.json();
+    })
+    .then(() => {
+      fetchInvoices(); // Refresh the invoice list
+      // Reset form to create mode
+      const form = document.getElementById("invoice-form");
+      form.onsubmit = handleFormSubmit;
+      form.reset();
+    })
+    .catch(error => {
+      console.error("Error updating invoice:", error);
+      alert(`Failed to update invoice: ${error.message}`);
+    });
+}
+  const invoice = invoices.find((inv) => inv.id === id);
+  if (!invoice) return;
+
+  // Populate form with invoice data for editing
+  document.getElementById("year").value = invoice.year;
+  document.getElementById("month").value = invoice.month;
+  document.getElementById("client-name").value = invoice.clientName;
+  document.getElementById("invoice-amount").value = invoice.amount;
+  document.getElementById("referral-bonus").value = invoice.bonusPercentage;
+  document.getElementById("paid-status").checked = invoice.paid;
+
+  // Change form submission to update instead of create
+  const form = document.getElementById("invoice-form");
+  form.onsubmit = (e) => updateInvoice(e, id);
 }
 
 async function updateInvoice(event, id) {
@@ -739,7 +855,7 @@ async function updateQuarterlyBonusPaidStatus(referrer, year, quarter, isPaid) {
 // This function is a duplicate and has been removed as per the prompt.
 
 // Function to update paid status of an invoice
-function updatePaidStatus(id, paid) {
+async function updatePaidStatus(id, paid) {
   console.log(`Updating paid status for invoice ${id} to ${paid}`);
   fetch(`${config.API_BASE_URL}/update-invoice/${id}`, {
     method: "PUT",
