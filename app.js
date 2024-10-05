@@ -1,4 +1,4 @@
-// Use API_BASE_URL in your fetch calls, for example:
+// Use API_BASE_URL in your fetch calls, for example: TEST
 // fetch(`${config.API_BASE_URL}/get-invoices`)
 
 const config = {
