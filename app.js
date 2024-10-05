@@ -30,29 +30,7 @@ function setCurrentUserDisplay() {
         backgroundColor = "black";
         break;
       case "Contax":
-        backgroundColor = "#D4AF37";  // Updated Contax color
-        break;
-      default:
-        backgroundColor = "gray";
-    }
-    currentUserDisplay.style.backgroundColor = backgroundColor;
-    currentUserDisplay.style.color = currentUser === "Contax" ? "black" : "white";
-    currentUserDisplay.style.fontWeight = "bold";
-    currentUserDisplay.textContent = currentUser;
-  }
-}
-  const currentUserDisplay = document.getElementById("currentUserDisplay");
-  if (currentUserDisplay && currentUser) {
-    let backgroundColor;
-    switch (currentUser) {
-      case "AdvokatiCHZ":
-        backgroundColor = "purple";
-        break;
-      case "MKMs":
-        backgroundColor = "black";
-        break;
-      case "Contax":
-        backgroundColor = "yellow";
+        backgroundColor = "#D4AF37"; // Updated Contax color
         break;
       default:
         backgroundColor = "gray";
