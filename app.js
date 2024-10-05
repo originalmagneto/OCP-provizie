@@ -1,5 +1,5 @@
 // Use API_BASE_URL in your fetch calls, for example:
-// fetch(`${config.API_BASE_URL}/get-invoices`) TESTIK
+
 // No debugging code needed here
 
 
@@ -276,13 +276,12 @@ async function handleFormSubmit(event) {
 // Function to render the invoice list
 
 // ===== Rendering Functions =====
-
 function renderInvoiceList() {
   console.log("Rendering invoice list");
   const tbody = document.querySelector("#invoice-list tbody");
   if (!tbody) {
     console.error("Invoice list tbody not found");
-    return;
+
   }
 
   tbody.innerHTML = "";
@@ -1011,26 +1010,8 @@ function updateInvoice(event, id) {
       alert(`Failed to update invoice: ${error.message}`);
     });
 }
-  const invoice = invoices.find((inv) => inv.id === id);
-  if (!invoice) return;
 
-  // Populate form with invoice data for editing
-  document.getElementById("year").value = invoice.year;
-  document.getElementById("month").value = invoice.month;
-  document.getElementById("client-name").value = invoice.clientName;
-  document.getElementById("invoice-amount").value = invoice.amount;
-  document.getElementById("referral-bonus").value = invoice.bonusPercentage;
-  document.getElementById("paid-status").checked = invoice.paid;
-
-  // Change form submission to update instead of create
-  const form = document.getElementById("invoice-form");
-  form.onsubmit = (e) => updateInvoice(e, id);
-
-  // Scroll to the form
-  form.scrollIntoView({ behavior: 'smooth' });
-}
-
-function updateInvoice(event, id) {
+async function updateInvoice(event, id) {
   event.preventDefault();
   const updatedInvoice = {
     year: parseInt(document.getElementById("year").value),
@@ -1043,28 +1024,27 @@ function updateInvoice(event, id) {
     createdBy: currentUser,
   };
 
-  fetch(`${config.API_BASE_URL}/update-invoice/${id}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ ...updatedInvoice, currentUser }),
-  })
-    .then(response => {
-      if (!response.ok) throw new Error('Failed to update invoice');
-      return response.json();
-    })
-    .then(() => {
-      fetchInvoices(); // Refresh the invoice list
-      // Reset form to create mode
-      const form = document.getElementById("invoice-form");
-      form.onsubmit = handleFormSubmit;
-      form.reset();
-    })
-    .catch(error => {
-      console.error("Error updating invoice:", error);
-      alert(`Failed to update invoice: ${error.message}`);
+  try {
+    const response = await fetch(`${config.API_BASE_URL}/update-invoice/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ ...updatedInvoice, currentUser }),
     });
+
+    if (!response.ok) throw new Error('Failed to update invoice');
+    await response.json();
+
+    await fetchInvoices(); // Refresh the invoice list
+    // Reset form to create mode
+    const form = document.getElementById("invoice-form");
+    form.onsubmit = handleFormSubmit;
+    form.reset();
+  } catch (error) {
+    console.error("Error updating invoice:", error);
+    alert(`Failed to update invoice: ${error.message}`);
+  }
 }
   const invoice = invoices.find((inv) => inv.id === id);
   if (!invoice) return;
@@ -1234,35 +1214,6 @@ async function updatePaidStatus(id, paid) {
     console.error("Error updating invoice paid status:", error);
     alert(`Failed to update invoice paid status: ${error.message}`);
   }
-}
-  console.log(`Updating paid status for invoice ${id} to ${paid}`);
-  fetch(`${config.API_BASE_URL}/update-invoice/${id}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ paid, currentUser }),
-  })
-    .then(response => {
-      if (!response.ok) throw new Error('Failed to update invoice');
-      return response.json();
-    })
-    .then(data => {
-      if (data.success) {
-        const invoice = invoices.find(inv => inv.id === id);
-        if (invoice) {
-          invoice.paid = paid;
-          updateInvoiceRowAppearance(id, paid);
-          renderSummaryTables();
-        }
-      } else {
-        throw new Error(data.message || "Failed to update invoice");
-      }
-    })
-    .catch(error => {
-      console.error("Error updating invoice paid status:", error);
-      alert(`Failed to update invoice paid status: ${error.message}`);
-    });
 }
 function updateInvoiceRowAppearance(id, paid) {
   const row = document.querySelector(`tr[data-id="${id}"]`);
