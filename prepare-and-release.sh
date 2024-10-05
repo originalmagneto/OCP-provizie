@@ -1,5 +1,23 @@
 #!/bin/bash
 
+# Function to check for changes
+check_for_changes() {
+    git fetch origin
+    if [[ $(git diff origin/main..HEAD) ]]; then
+        return 0  # Changes exist
+    else
+        return 1  # No changes
+    fi
+}
+
+# Check for changes only once at the beginning
+if check_for_changes; then
+    echo "Changes detected. Proceeding with release process."
+else
+    echo "No changes detected. Skipping release process."
+    exit 0
+fi
+
 # Check for interrupted merge
 if [ -f .git/MERGE_HEAD ]; then
     echo "Interrupted merge detected. Attempting to continue..."
