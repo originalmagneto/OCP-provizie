@@ -2,6 +2,12 @@
 
 set -e
 
+# Commit all changes
+git add .
+git diff --staged --quiet || git commit -m "Pre-release update"
+
+# Then proceed with your existing release logic
+
 # Function to increment version
 increment_version() {
     local version=$1
