@@ -29,8 +29,6 @@ git reset --hard origin/main
 
 echo "Local repository synced with GitHub."
 
-
-
 # Check for local changes
 if [[ $(git status --porcelain) ]]; then
     echo "You have local changes. Please review them."
