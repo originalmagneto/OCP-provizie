@@ -1,7 +1,5 @@
 const express = require("express");
-
 const session = require("express-session");
-
 const path = require("path");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
@@ -36,10 +34,10 @@ function initializeDatabase() {
     // Create users table if it doesn't exist
     db.run(
       `CREATE TABLE IF NOT EXISTS users (
-            username TEXT PRIMARY KEY,
-            password TEXT,
-            requirePasswordChange INTEGER
-        )`,
+        username TEXT PRIMARY KEY,
+        password TEXT,
+        requirePasswordChange INTEGER
+      )`,
       (err) => {
         if (err) {
           console.error("Error creating users table:", err);
@@ -53,16 +51,16 @@ function initializeDatabase() {
     // Create invoices table if it doesn't exist
     db.run(
       `CREATE TABLE IF NOT EXISTS invoices (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            year INTEGER,
-            month INTEGER,
-            clientName TEXT,
-            amount REAL,
-            referrer TEXT,
-            bonusPercentage REAL,
-            paid INTEGER,
-            createdBy TEXT
-        )`,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        year INTEGER,
+        month INTEGER,
+        clientName TEXT,
+        amount REAL,
+        referrer TEXT,
+        bonusPercentage REAL,
+        paid INTEGER,
+        createdBy TEXT
+      )`,
       (err) => {
         if (err) {
           console.error("Error creating invoices table:", err);
@@ -75,9 +73,9 @@ function initializeDatabase() {
     // Create clients table if it doesn't exist
     db.run(
       `CREATE TABLE IF NOT EXISTS clients (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT UNIQUE
-        )`,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT UNIQUE
+      )`,
       (err) => {
         if (err) {
           console.error("Error creating clients table:", err);
@@ -90,12 +88,12 @@ function initializeDatabase() {
     // Create quarterly_bonus_status table if it doesn't exist
     db.run(
       `CREATE TABLE IF NOT EXISTS quarterly_bonus_status (
-            referrer TEXT,
-            year INTEGER,
-            quarter INTEGER,
-            paid INTEGER,
-            PRIMARY KEY (referrer, year, quarter)
-        )`,
+        referrer TEXT,
+        year INTEGER,
+        quarter INTEGER,
+        paid INTEGER,
+        PRIMARY KEY (referrer, year, quarter)
+      )`,
       (err) => {
         if (err) {
           console.error("Error creating quarterly_bonus_status table:", err);
@@ -215,28 +213,26 @@ app.post("/change-password", (req, res) => {
 });
 
 app.get("/get-invoices", (req, res) => {
-
-  app.get("/invoices/:id", (req, res) => {
-    const { id } = req.params;
-    db.get("SELECT * FROM invoices WHERE id = ?", [id], (err, row) => {
-      if (err) {
-        console.error("Error fetching invoice:", err);
-        return res.status(500).json({ error: "Internal server error" });
-      }
-      if (!row) {
-        return res.status(404).json({ error: "Invoice not found" });
-      }
-      res.json(row);
-    });
-  });
-
-
   db.all("SELECT * FROM invoices", (err, rows) => {
     if (err) {
       console.error("Error fetching invoices:", err);
       return res.status(500).json({ error: "Internal server error" });
     }
     res.json(rows);
+  });
+});
+
+app.get("/invoices/:id", (req, res) => {
+  const { id } = req.params;
+  db.get("SELECT * FROM invoices WHERE id = ?", [id], (err, row) => {
+    if (err) {
+      console.error("Error fetching invoice:", err);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+    if (!row) {
+      return res.status(404).json({ error: "Invoice not found" });
+    }
+    res.json(row);
   });
 });
 
@@ -264,7 +260,7 @@ app.post("/save-invoice", (req, res) => {
     createdBy,
   } = req.body;
   const query = `INSERT INTO invoices (year, month, clientName, amount, referrer, bonusPercentage, paid, createdBy)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
   db.run(
     query,
     [
@@ -315,7 +311,7 @@ app.put("/update-invoice/:id", (req, res) => {
     bonusPercentage,
     paid,
     createdBy,
-    currentUser
+    currentUser,
   } = req.body;
 
   // Check if the user is authorized to update this invoice
@@ -371,91 +367,14 @@ app.put("/update-invoice/:id", (req, res) => {
     });
   });
 });
-  const { id } = req.params;
-  const {
-    paid,
-    year,
-    month,
-    clientName,
-    amount,
-    referrer,
-    bonusPercentage,
-    createdBy,
-  } = req.body;
-  const currentUser = req.body.currentUser;
-
-  // Check if the user is authorized to update this invoice
-  db.get("SELECT referrer FROM invoices WHERE id = ?", [id], (err, row) => {
-    if (err) {
-      console.error("Error fetching invoice:", err);
-      return res
-        .status(500)
-        .json({ success: false, message: "Failed to fetch invoice" });
-    }
-    if (!row) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Invoice not found" });
-    }
-    if (row.referrer !== currentUser) {
-      return res.status(403).json({
-        success: false,
-        message: "Not authorized to update this invoice",
-      });
-    }
-
-    // If authorized, proceed with the update
-    let query, params;
-    if (paid !== undefined) {
-      // If only updating paid status
-      query = "UPDATE invoices SET paid = ? WHERE id = ?";
-      params = [paid ? 1 : 0, id];
-    } else {
-      // If updating all invoice details
-      query = `UPDATE invoices SET
-                     year = ?, month = ?, clientName = ?, amount = ?,
-                     referrer = ?, bonusPercentage = ?, paid = ?, createdBy = ?
-                     WHERE id = ?`;
-      params = [
-        year,
-        month,
-        clientName,
-        amount,
-        referrer,
-        bonusPercentage,
-        paid ? 1 : 0,
-        createdBy,
-        id,
-      ];
-    }
-
-    db.run(query, params, function (err) {
-      if (err) {
-        console.error("Error updating invoice:", err);
-        return res
-          .status(500)
-          .json({ success: false, message: "Failed to update invoice" });
-      }
-      if (this.changes === 0) {
-        return res
-          .status(404)
-          .json({ success: false, message: "Invoice not found" });
-      }
-      res.json({ success: true });
-    });
-  });
-});
 
 app.delete("/delete-invoice/:id", (req, res) => {
   const { id } = req.params;
   const { currentUser } = req.body;
 
-  const { id } = req.params;
-  const { createdBy } = req.query;
-
   db.run(
     "DELETE FROM invoices WHERE id = ? AND createdBy = ?",
-    [id, createdBy],
+    [id, currentUser],
     function (err) {
       if (err) {
         console.error("Error deleting invoice:", err);
@@ -495,7 +414,7 @@ app.get("/quarterly-bonus-status", (req, res) => {
 app.post("/update-quarterly-bonus-status", (req, res) => {
   const { referrer, year, quarter, isPaid } = req.body;
   const query = `INSERT OR REPLACE INTO quarterly_bonus_status (referrer, year, quarter, paid)
-                   VALUES (?, ?, ?, ?)`;
+                 VALUES (?, ?, ?, ?)`;
   db.run(query, [referrer, year, quarter, isPaid ? 1 : 0], function (err) {
     if (err) {
       console.error("Error updating quarterly bonus status:", err);
@@ -505,7 +424,7 @@ app.post("/update-quarterly-bonus-status", (req, res) => {
   });
 });
 
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
 // Add general error handling middleware
 app.use((err, req, res, next) => {

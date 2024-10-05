@@ -284,6 +284,57 @@ async function handleEditSubmit(event, id) {
 
     console.log("Updated invoice data:", invoiceData);
 
+    const response = await fetch(
+      `${config.API_BASE_URL}/update-invoice/${id}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(invoiceData),
+      },
+    );
+
+    console.log("Response received:", response);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.message || "Unknown error"}`);
+    }
+
+    const result = await response.json();
+    console.log("Invoice updated successfully:", result);
+
+    await fetchInvoices();
+    renderInvoiceList();
+    renderSummaryTables();
+
+    // Reset form to its original state
+    form.reset();
+    form.onsubmit = handleFormSubmit;
+    const submitButton = form.querySelector('button[type="submit"]');
+    submitButton.textContent = "Add Invoice";
+  } catch (error) {
+    console.error("Error in form submission:", error);
+    alert(`Failed to update invoice: ${error.message}`);
+  }
+}
+  event.preventDefault();
+  console.log("Edit form submission started");
+
+  try {
+    const form = event.target;
+    const invoiceData = {
+      year: form.year.value,
+      month: form.month.value,
+      clientName: form["client-name"].value,
+      amount: parseFloat(form["invoice-amount"].value),
+      referrer: currentUser,
+      bonusPercentage: parseFloat(form["referral-bonus"].value),
+      paid: form["paid-status"].checked,
+      createdBy: currentUser,
+    };
+
+    console.log("Updated invoice data:", invoiceData);
+
     const token = localStorage.getItem("authToken"); // Assume you store the auth token in localStorage
     const headers = {
       "Content-Type": "application/json",
@@ -385,19 +436,21 @@ async function deleteInvoice(id) {
   }
 
   try {
+    const token = localStorage.getItem("authToken");
     const response = await fetch(
-      `${config.API_BASE_URL}/invoices/${id}`,
+      `${config.API_BASE_URL}/delete-invoice/${id}`,
       {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("authToken")}`
+          "Authorization": token ? `Bearer ${token}` : "",
         },
+        body: JSON.stringify({ currentUser: currentUser }),
       },
     );
 
     if (!response.ok) {
-      const errorData = await response.json();
+      const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
     }
 
