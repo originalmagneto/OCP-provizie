@@ -1,5 +1,32 @@
 #!/bin/bash
 
+# Function to handle merge conflicts
+handle_merge_conflicts() {
+    echo "Merge conflicts detected. Please resolve them manually."
+    echo "After resolving conflicts, run the following commands:"
+    echo "1. git add ."
+    echo "2. git commit -m 'Resolve merge conflicts'"
+    echo "3. Run this script again"
+    exit 1
+}
+
+# Fetch the latest changes
+git fetch origin
+
+# Check if there are diverged branches
+if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
+    echo "Local and remote branches have diverged. Attempting to merge..."
+    git merge --no-commit --no-ff origin/main
+    if [ $? -ne 0 ]; then
+        handle_merge_conflicts
+    fi
+fi
+
+# Check for unresolved conflicts
+if [[ -n $(git ls-files -u) ]]; then
+    handle_merge_conflicts
+fi
+
 # Ensure we're on the main branch
 git checkout main
 
