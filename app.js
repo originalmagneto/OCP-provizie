@@ -246,14 +246,8 @@ async function handleFormSubmit(event) {
     await fetchInvoices();
     await fetchClientNames();
 
-    // Reset form
-    form.reset();
-    form.removeAttribute("data-edit-mode");
-    form.removeAttribute("data-edit-invoice-id");
-    // Set default year and month
-    const currentDate = new Date();
-    document.getElementById("year").value = currentDate.getFullYear();
-    document.getElementById("month").value = currentDate.getMonth() + 1;
+    // Reset form and button
+    resetForm(form);
 
     console.log(
       isEditMode
@@ -271,6 +265,23 @@ async function handleFormSubmit(event) {
       `An error occurred while ${isEditMode ? "updating" : "saving"} the invoice: ${error.message}`,
     );
   }
+}
+
+function resetForm(form) {
+  form.reset();
+  form.removeAttribute("data-edit-mode");
+  form.removeAttribute("data-edit-invoice-id");
+
+  // Reset the submit button to "Add Invoice"
+  const submitButton = form.querySelector('button[type="submit"]');
+  submitButton.textContent = "Add Invoice";
+  submitButton.classList.remove("btn-warning");
+  submitButton.classList.add("btn-primary");
+
+  // Set default year and month
+  const currentDate = new Date();
+  document.getElementById("year").value = currentDate.getFullYear();
+  document.getElementById("month").value = currentDate.getMonth() + 1;
 }
 
 // Function to render the invoice list
@@ -535,6 +546,12 @@ async function editInvoice(id) {
   const form = document.getElementById("invoice-form");
   form.setAttribute("data-edit-mode", "true");
   form.setAttribute("data-edit-invoice-id", id);
+
+  // Change the submit button to an "Update Invoice" button
+  const submitButton = form.querySelector('button[type="submit"]');
+  submitButton.textContent = "Update Invoice";
+  submitButton.classList.remove("btn-primary");
+  submitButton.classList.add("btn-warning");
 
   // Scroll to the form
   form.scrollIntoView({ behavior: "smooth" });
