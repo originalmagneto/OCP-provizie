@@ -97,14 +97,10 @@ function updateInvoiceRowAppearance(id, paid) {
   if (row) {
     row.classList.toggle("paid-invoice", paid);
     row.classList.toggle("unpaid-invoice", !paid);
+    row.querySelectorAll("td:not(:last-child)").forEach((td) => {
+      td.classList.toggle("paid-text", paid);
+    });
   }
-}
-
-function updateSpanAppearance(span, isPaid) {
-  span.classList.toggle("paid", isPaid);
-  span.classList.toggle("unpaid", !isPaid);
-  span.style.textDecoration = isPaid ? "line-through" : "none";
-  span.style.color = isPaid ? "green" : "red";
 }
 
 // ===== Data Fetching =====
@@ -194,48 +190,8 @@ async function handleFormSubmit(event) {
     console.log("Invoice saved successfully:", result);
 
     await fetchInvoices();
-    renderInvoiceList();  // Refresh the invoice list
+    renderInvoiceList();
     renderSummaryTables();
-    form.reset();
-  } catch (error) {
-    console.error("Error in form submission:", error);
-    alert("Failed to save invoice. Please check the console for details.");
-  }
-}
-  event.preventDefault();
-  console.log("Form submission started");
-
-  try {
-    const form = event.target;
-    const invoiceData = {
-      year: form.year.value,
-      month: form.month.value,
-      clientName: form["client-name"].value,
-      amount: parseFloat(form["invoice-amount"].value),
-      referrer: currentUser,
-      bonusPercentage: parseFloat(form["referral-bonus"].value),
-      paid: form["paid-status"].checked,
-      createdBy: currentUser,
-    };
-
-    console.log("Invoice data:", invoiceData);
-
-    const response = await fetch(`${config.API_BASE_URL}/save-invoice`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(invoiceData),
-    });
-
-    console.log("Response received:", response);
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const result = await response.json();
-    console.log("Invoice saved successfully:", result);
-
-    await fetchInvoices();
     form.reset();
   } catch (error) {
     console.error("Error in form submission:", error);
@@ -257,46 +213,22 @@ function renderInvoiceList() {
     .map(
       (invoice) => `
         <tr data-id="${invoice.id}" class="${invoice.paid ? "paid-invoice" : "unpaid-invoice"}">
-          <td>${invoice.year}</td>
-          <td>${invoice.month}</td>
-          <td>${invoice.clientName}</td>
-          <td>${invoice.amount.toFixed(2)}</td>
-          <td>${invoice.referrer}</td>
-          <td>${(invoice.bonusPercentage * 100).toFixed(0)}%</td>
+          <td class="${invoice.paid ? "paid-text" : ""}">${invoice.year}</td>
+          <td class="${invoice.paid ? "paid-text" : ""}">${invoice.month}</td>
+          <td class="${invoice.paid ? "paid-text" : ""}">${invoice.clientName}</td>
+          <td class="${invoice.paid ? "paid-text" : ""}">${invoice.amount.toFixed(2)}</td>
+          <td class="${invoice.paid ? "paid-text" : ""}">${invoice.referrer}</td>
+          <td class="${invoice.paid ? "paid-text" : ""}">${(invoice.bonusPercentage * 100).toFixed(0)}%</td>
           <td>
             <input type="checkbox" ${invoice.paid ? "checked" : ""} onchange="updatePaidStatus(${invoice.id}, this.checked)" ${invoice.createdBy !== currentUser ? "disabled" : ""}>
           </td>
           <td>
-            ${invoice.createdBy === currentUser ?
-              `<button onclick="editInvoice(${invoice.id})">Edit</button>
+            ${
+              invoice.createdBy === currentUser
+                ? `<button onclick="editInvoice(${invoice.id})">Edit</button>
                <button onclick="deleteInvoice(${invoice.id})">Delete</button>`
-              : ''}
-          </td>
-        </tr>
-      `,
-    )
-    .join("");
-}
-  const invoiceList = getElement(
-    "invoice-list",
-    "Invoice list table not found",
-  );
-  invoiceList.innerHTML = invoices
-    .map(
-      (invoice) => `
-        <tr data-id="${invoice.id}" class="${invoice.paid ? "paid-invoice" : "unpaid-invoice"}">
-          <td>${invoice.year}</td>
-          <td>${invoice.month}</td>
-          <td>${invoice.clientName}</td>
-          <td>${invoice.amount.toFixed(2)}</td>
-          <td>${invoice.referrer}</td>
-          <td>${(invoice.bonusPercentage * 100).toFixed(0)}%</td>
-          <td>
-            <input type="checkbox" ${invoice.paid ? "checked" : ""} onchange="updatePaidStatus(${invoice.id}, this.checked)">
-          </td>
-          <td>
-            <button onclick="editInvoice(${invoice.id})">Edit</button>
-            <button onclick="deleteInvoice(${invoice.id})">Delete</button>
+                : ""
+            }
           </td>
         </tr>
       `,
@@ -307,14 +239,12 @@ function renderInvoiceList() {
 // ===== Invoice Editing and Deletion =====
 function editInvoice(id) {
   // Implementation for editing an invoice
-}
-
-async function updateInvoice(event, id) {
-  // Implementation for updating an invoice
+  console.log(`Editing invoice ${id}`);
 }
 
 async function deleteInvoice(id) {
   // Implementation for deleting an invoice
+  console.log(`Deleting invoice ${id}`);
 }
 
 // ===== Quarterly Bonus Handling =====
@@ -324,10 +254,6 @@ function getQuarterlyBonusPaidStatus(referrer, year, quarter) {
       quarterlyBonusPaidStatus[referrer][`${year}-${quarter}`]) ||
     false
   );
-}
-
-async function updateQuarterlyBonusPaidStatus(referrer, year, quarter, isPaid) {
-  // Implementation for updating quarterly bonus paid status
 }
 
 function calculateQuarterlyBonus(invoices, year, quarter) {
@@ -429,9 +355,9 @@ function createReferrerTable(referrer) {
 
 async function updatePaidStatus(id, paid) {
   try {
-    const invoice = invoices.find(inv => inv.id === id);
+    const invoice = invoices.find((inv) => inv.id === id);
     if (!invoice || invoice.createdBy !== currentUser) {
-      throw new Error('You are not authorized to update this invoice');
+      throw new Error("You are not authorized to update this invoice");
     }
 
     const response = await fetch(
@@ -453,7 +379,7 @@ async function updatePaidStatus(id, paid) {
     const result = await response.json();
     if (result.success) {
       invoice.paid = paid;
-      renderInvoiceList();
+      updateInvoiceRowAppearance(id, paid);
       renderSummaryTables();
     } else {
       throw new Error("Failed to update invoice paid status");
@@ -461,45 +387,6 @@ async function updatePaidStatus(id, paid) {
   } catch (error) {
     console.error("Error updating paid status:", error);
     alert(error.message);
-    const checkbox = document.querySelector(
-      `tr[data-id="${id}"] input[type="checkbox"]`,
-    );
-    if (checkbox) {
-      checkbox.checked = !paid;
-    }
-  }
-}
-  try {
-    const response = await fetch(
-      `${config.API_BASE_URL}/update-invoice/${id}`,
-      {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          paid: paid,
-          currentUser: currentUser,
-        }),
-      },
-    );
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const result = await response.json();
-    if (result.success) {
-      const invoice = invoices.find((inv) => inv.id === id);
-      if (invoice) {
-        invoice.paid = paid;
-        updateInvoiceRowAppearance(id, paid);
-      }
-      renderSummaryTables();
-    } else {
-      throw new Error("Failed to update invoice paid status");
-    }
-  } catch (error) {
-    console.error("Error updating paid status:", error);
-    alert("Failed to update invoice paid status. Please try again.");
     const checkbox = document.querySelector(
       `tr[data-id="${id}"] input[type="checkbox"]`,
     );
@@ -542,7 +429,8 @@ async function updateQuarterStatus(checkbox, referrer) {
         `tbody tr:nth-child(${year - new Date().getFullYear() + 1}) td:nth-child(${parseInt(quarter) + 1}) .quarter-amount`,
       );
       if (amountSpan) {
-        updateSpanAppearance(amountSpan, isPaid);
+        amountSpan.classList.toggle("paid", isPaid);
+        amountSpan.classList.toggle("unpaid", !isPaid);
       }
     } else {
       throw new Error("Failed to update quarterly bonus status");
@@ -561,4 +449,7 @@ if (currentUser) {
   window.location.href = "login.html";
 }
 
+// Make updatePaidStatus accessible globally
 window.updatePaidStatus = updatePaidStatus;
+window.editInvoice = editInvoice;
+window.deleteInvoice = deleteInvoice;
