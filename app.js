@@ -210,6 +210,79 @@ async function handleFormSubmit(event) {
     const data = await response.json();
 
     if (newInvoice.clientName && !clientNames.includes(newInvoice.clientName)) {
+      await fetch(`${config.API_BASE_URL}/save-client-name`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ clientName: newInvoice.clientName }),
+      });
+    }
+
+    await fetchInvoices();
+    await fetchClientNames();
+
+    // Reset form
+    event.target.reset();
+    // Set default year and month
+    const currentDate = new Date();
+    document.getElementById("year").value = currentDate.getFullYear();
+    document.getElementById("month").value = currentDate.getMonth() + 1;
+
+    console.log("Form reset (except year and month)");
+  } catch (error) {
+    console.error("Error saving data:", error);
+    alert(`An error occurred while saving the invoice: ${error.message}`);
+  }
+}
+  event.preventDefault();
+  console.log("Form submitted");
+
+  const newInvoice = {
+    year: parseInt(document.getElementById("year").value),
+    month: parseInt(document.getElementById("month").value),
+    clientName: document.getElementById("client-name").value.trim(),
+    amount: parseFloat(document.getElementById("invoice-amount").value),
+    referrer: currentUser,
+    bonusPercentage: parseFloat(
+      document.getElementById("referral-bonus").value,
+    ),
+    paid: document.getElementById("paid-status").checked,
+    createdBy: currentUser,
+  };
+
+  console.log("New invoice:", newInvoice);
+
+  if (
+    isNaN(newInvoice.year) ||
+    isNaN(newInvoice.month) ||
+    isNaN(newInvoice.amount) ||
+    isNaN(newInvoice.bonusPercentage)
+  ) {
+    console.error("Invalid input values");
+    alert("Please fill in all fields with valid values.");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${config.API_BASE_URL}/save-invoice`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(newInvoice),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(
+        `Server error: ${errorData.error}. Details: ${errorData.details}`,
+      );
+    }
+
+    const data = await response.json();
+
+    if (newInvoice.clientName && !clientNames.includes(newInvoice.clientName)) {
       const clientResponse = await fetch(
         `${config.API_BASE_URL}/save-client-name`,
         {
@@ -831,6 +904,46 @@ async function updateQuarterlyBonusPaidStatus(referrer, year, quarter, isPaid) {
 
 // Function to update paid status of an invoice
 async function updatePaidStatus(id, paid) {
+    console.log(`Updating paid status for invoice ${id} to ${paid}`);
+    try {
+        const response = await fetch(`${config.API_BASE_URL}/update-invoice/${id}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ paid, currentUser }),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || "Failed to update invoice");
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+            const invoice = invoices.find((inv) => inv.id === id);
+            if (invoice) {
+                invoice.paid = paid;
+                updateInvoiceRowAppearance(id, paid);
+                renderSummaryTables();
+            }
+        } else {
+            throw new Error(data.message || "Failed to update invoice");
+        }
+    } catch (error) {
+        console.error("Error updating invoice paid status:", error);
+        alert(`Failed to update invoice paid status: ${error.message}`);
+    }
+}
+
+function updateInvoiceRowAppearance(id, paid) {
+    const row = document.querySelector(`tr[data-id="${id}"]`);
+    if (row) {
+        row.style.textDecoration = paid ? "line-through" : "none";
+        row.style.color = paid ? "green" : "";
+    }
+}
     console.log(`Updating paid status for invoice ${id} to ${paid}`);
     try {
         const response = await fetch(`${config.API_BASE_URL}/update-invoice/${id}`, {
