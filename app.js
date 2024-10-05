@@ -43,6 +43,14 @@ document.addEventListener("DOMContentLoaded", () => {
     window.location.href = "login.html";
   } else {
     init();
+    console.log("Attaching form submit event listener");
+    const form = getElement("invoice-form", "Invoice form not found");
+    form.addEventListener("submit", handleFormSubmit);
+  }
+  if (!currentUser) {
+    window.location.href = "login.html";
+  } else {
+    init();
   }
 });
 
@@ -160,6 +168,50 @@ async function fetchQuarterlyBonusPaidStatus() {
 
 // ===== Form Handling =====
 async function handleFormSubmit(event) {
+  event.preventDefault();
+  console.log("Form submission started");
+
+  try {
+    // Collect form data
+    const form = event.target;
+    const invoiceData = {
+      year: form.year.value,
+      month: form.month.value,
+      clientName: form['client-name'].value,
+      amount: parseFloat(form['invoice-amount'].value),
+      referrer: currentUser,
+      bonusPercentage: parseFloat(form['referral-bonus'].value),
+      paid: form['paid-status'].checked,
+      createdBy: currentUser,
+    };
+
+    console.log("Invoice data:", invoiceData);
+
+    // Send request to save invoice
+    console.log("Sending request to save invoice");
+    const response = await fetch(`${config.API_BASE_URL}/save-invoice`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(invoiceData),
+    });
+
+    console.log("Response received:", response);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log("Invoice saved successfully:", result);
+
+    // Update UI
+    await fetchInvoices();
+    form.reset();
+  } catch (error) {
+    console.error("Error in form submission:", error);
+    alert("Failed to save invoice. Please check the console for details.");
+  }
+}
   // ... (same code as before)
 }
 

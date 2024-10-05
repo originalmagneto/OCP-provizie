@@ -236,6 +236,7 @@ app.get("/get-client-names", (req, res) => {
 });
 
 app.post("/save-invoice", (req, res) => {
+  console.log("Received save-invoice request:", req.body);
   const {
     year,
     month,
