@@ -354,7 +354,44 @@ function createReferrerTable(referrer) {
 }
 
 async function updatePaidStatus(id, paid) {
-  // Implementation for updating paid status
+  try {
+    const response = await fetch(
+      `${config.API_BASE_URL}/update-invoice/${id}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          paid: paid,
+          currentUser: currentUser,
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    if (result.success) {
+      const invoice = invoices.find((inv) => inv.id === id);
+      if (invoice) {
+        invoice.paid = paid;
+        updateInvoiceRowAppearance(id, paid);
+      }
+      renderSummaryTables();
+    } else {
+      throw new Error("Failed to update invoice paid status");
+    }
+  } catch (error) {
+    console.error("Error updating paid status:", error);
+    alert("Failed to update invoice paid status. Please try again.");
+    const checkbox = document.querySelector(
+      `tr[data-id="${id}"] input[type="checkbox"]`,
+    );
+    if (checkbox) {
+      checkbox.checked = !paid;
+    }
+  }
 }
 
 async function updateQuarterStatus(checkbox, referrer) {
@@ -408,3 +445,5 @@ if (currentUser) {
 } else {
   window.location.href = "login.html";
 }
+
+window.updatePaidStatus = updatePaidStatus;
