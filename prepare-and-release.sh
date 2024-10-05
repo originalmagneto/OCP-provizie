@@ -1,5 +1,13 @@
 #!/bin/bash
 
+# Check if app.js has changed
+echo "Checking app.js status..."
+if git diff --quiet HEAD^..HEAD -- app.js; then
+    echo "No changes detected in app.js."
+else
+    echo "Changes detected in app.js. These changes will be included in the release."
+fi
+
 # Function to handle merge conflicts
 handle_merge_conflicts() {
     echo "Merge conflicts detected. Please resolve them manually."

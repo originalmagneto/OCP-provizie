@@ -1,5 +1,36 @@
 #!/bin/bash
 
+set -e
+
+# Function to increment version
+increment_version() {
+    local version=$1
+    IFS='.' read -ra ADDR <<< "$version"
+    ADDR[2]=$((ADDR[2]+1))
+    echo "${ADDR[0]}.${ADDR[1]}.${ADDR[2]}"
+}
+
+# Function to generate changelog
+generate_changelog() {
+    local since_tag=$1
+    local changes=$(git log ${since_tag}..HEAD --pretty=format:"%h - %s (%an)")
+    local changelog=""
+
+    while IFS= read -r line; do
+        cleaned_line=$(echo "$line" | sed -E 's/^[a-f0-9]+ - (\[?[A-Z]+-[0-9]+\]?:?|fix:|feat:|refactor:|chore:|docs:)//' | sed 's/^ *//')
+        cleaned_line="$(tr '[:lower:]' '[:upper:]' <<< ${cleaned_line:0:1})${cleaned_line:1}"
+        changelog+="- $cleaned_line\n"
+    done <<< "$changes"
+
+    echo -e "$changelog"
+}
+
+# Error handling function
+handle_error() {
+    echo "Error: $1" >&2
+    exit 1
+}
+
 # Ensure we're on the main branch and up to date
 git checkout main
 git pull origin main
