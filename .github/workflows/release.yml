@@ -41,16 +41,16 @@ jobs:
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
 
-      - name: Check for changes
+      - name: Check for meaningful changes
         id: check_changes
         run: |
           LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-          COMMITS_SINCE_TAG=$(git rev-list $LATEST_TAG..HEAD --count)
-          if [ "$COMMITS_SINCE_TAG" -eq "0" ]; then
-            echo "No new commits since last tag. Skipping release."
+          CHANGES=$(git log ${LATEST_TAG}..HEAD --oneline --no-merges --grep="^(?!Bump version)")
+          if [ -z "$CHANGES" ]; then
+            echo "No meaningful changes since last release. Skipping release."
             echo "::set-output name=should_release::false"
           else
-            echo "New commits found. Proceeding with release."
+            echo "Meaningful changes found. Proceeding with release."
             echo "::set-output name=should_release::true"
           fi
 
@@ -73,4 +73,4 @@ jobs:
 
       - name: No Release
         if: steps.check_changes.outputs.should_release != 'true'
-        run: echo "No new release created as there were no new commits."
+        run: echo "No new release created as there were no meaningful changes."
