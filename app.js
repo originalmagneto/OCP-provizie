@@ -252,6 +252,9 @@ function renderInvoiceList() {
     return;
   }
 
+  // Sort invoices in descending order (newest first)
+  invoices.sort((a, b) => b.id - a.id);
+
   tbody.innerHTML = "";
   invoices.forEach((invoice) => {
     const tr = document.createElement("tr");
