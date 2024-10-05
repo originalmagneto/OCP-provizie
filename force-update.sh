@@ -1,4 +1,3 @@
-
 #!/bin/bash
 
 echo "Checking current status..."
