@@ -189,6 +189,22 @@ h2 {
     align-self: flex-start;
 }
 
+#addInvoiceBox {
+    width: 40%;
+    max-width: none;
+}
+
+#summaryBox {
+    width: 60%;
+}
+
+@media (max-width: 768px) {
+    #addInvoiceBox,
+    #summaryBox {
+        width: 100%;
+    }
+}
+
 #summaryBox {
     width: 50%;
 }
