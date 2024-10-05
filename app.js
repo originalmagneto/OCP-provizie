@@ -398,7 +398,69 @@ function renderSummaryTables() {
 }
 
 function createReferrerTable(referrer) {
-  // ... (keep the existing implementation)
+  const table = document.createElement("table");
+  table.className = `table table-sm summary-table ${referrer.toLowerCase().replace(/\s+/g, "-")}`;
+
+  const referrerInvoices = invoices.filter(
+    (invoice) => invoice.referrer === referrer,
+  );
+  const years = [
+    ...new Set(referrerInvoices.map((invoice) => invoice.year)),
+  ].sort((a, b) => b - a);
+
+  const referrerColor =
+    {
+      AdvokatiCHZ: "purple",
+      MKMs: "black",
+      Contax: "#D4AF37",
+    }[referrer] || "inherit";
+
+  const thead = table.createTHead();
+  const headerRow1 = thead.insertRow();
+  const headerCell1 = headerRow1.insertCell();
+  headerCell1.colSpan = 5;
+  headerCell1.className = "referrer-header";
+  headerCell1.style.backgroundColor = referrerColor;
+  headerCell1.style.color = "white";
+  headerCell1.textContent = referrer;
+
+  const headerRow2 = thead.insertRow();
+  headerRow2.insertCell().textContent = "Year";
+
+  for (let quarter = 1; quarter <= 4; quarter++) {
+    const th = headerRow2.insertCell();
+    th.className = "quarter-header";
+    th.innerHTML = `Q${quarter} <input type="checkbox" class="paid-checkbox" data-quarter="${quarter}" data-referrer="${referrer}" ${
+      referrer === currentUser ? "" : "disabled"
+    }>`;
+
+    const checkbox = th.querySelector(".paid-checkbox");
+    checkbox.addEventListener("change", (event) =>
+      updateQuarterStatus(event.target, referrer),
+    );
+  }
+
+  const tbody = table.createTBody();
+  years.forEach((year) => {
+    const row = tbody.insertRow();
+    const yearCell = row.insertCell();
+    yearCell.textContent = year;
+
+    for (let quarter = 1; quarter <= 4; quarter++) {
+      const cell = row.insertCell();
+      const quarterlyBonus = calculateQuarterlyBonus(
+        referrerInvoices,
+        year,
+        quarter,
+      );
+      const isPaid = getQuarterlyBonusPaidStatus(referrer, year, quarter);
+      cell.innerHTML = `<span class="quarter-amount ${
+        isPaid ? "paid" : "unpaid"
+      }">${quarterlyBonus.toFixed(2)}</span>`;
+    }
+  });
+
+  return table;
 }
 
 async function updatePaidStatus(id, paid) {
