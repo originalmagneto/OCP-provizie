@@ -238,13 +238,116 @@ function renderInvoiceList() {
 
 // ===== Invoice Editing and Deletion =====
 function editInvoice(id) {
-  // Implementation for editing an invoice
-  console.log(`Editing invoice ${id}`);
+  const invoice = invoices.find(inv => inv.id === id);
+  if (!invoice || invoice.createdBy !== currentUser) {
+    alert('You are not authorized to edit this invoice');
+    return;
+  }
+
+  const form = getElement("invoice-form", "Invoice form not found");
+  form.year.value = invoice.year;
+  form.month.value = invoice.month;
+  form["client-name"].value = invoice.clientName;
+  form["invoice-amount"].value = invoice.amount;
+  form["referral-bonus"].value = invoice.bonusPercentage;
+  form["paid-status"].checked = invoice.paid;
+
+  // Change the form submission handler to update instead of create
+  form.onsubmit = (event) => handleEditSubmit(event, id);
+
+  // Change the submit button text
+  const submitButton = form.querySelector('button[type="submit"]');
+  submitButton.textContent = "Update Invoice";
+
+  // Scroll to the form
+  form.scrollIntoView({ behavior: 'smooth' });
+}
+
+async function handleEditSubmit(event, id) {
+  event.preventDefault();
+  console.log("Edit form submission started");
+
+  try {
+    const form = event.target;
+    const invoiceData = {
+      year: form.year.value,
+      month: form.month.value,
+      clientName: form["client-name"].value,
+      amount: parseFloat(form["invoice-amount"].value),
+      referrer: currentUser,
+      bonusPercentage: parseFloat(form["referral-bonus"].value),
+      paid: form["paid-status"].checked,
+      createdBy: currentUser,
+    };
+
+    console.log("Updated invoice data:", invoiceData);
+
+    const response = await fetch(`${config.API_BASE_URL}/update-invoice/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(invoiceData),
+    });
+
+    console.log("Response received:", response);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log("Invoice updated successfully:", result);
+
+    await fetchInvoices();
+    renderInvoiceList();
+    renderSummaryTables();
+
+    // Reset form to its original state
+    form.reset();
+    form.onsubmit = handleFormSubmit;
+    const submitButton = form.querySelector('button[type="submit"]');
+    submitButton.textContent = "Add Invoice";
+
+  } catch (error) {
+    console.error("Error in form submission:", error);
+    alert("Failed to update invoice. Please check the console for details.");
+  }
 }
 
 async function deleteInvoice(id) {
-  // Implementation for deleting an invoice
-  console.log(`Deleting invoice ${id}`);
+  const invoice = invoices.find(inv => inv.id === id);
+  if (!invoice || invoice.createdBy !== currentUser) {
+    alert('You are not authorized to delete this invoice');
+    return;
+  }
+
+  if (!confirm("Are you sure you want to delete this invoice?")) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`${config.API_BASE_URL}/delete-invoice/${id}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currentUser: currentUser }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    if (result.success) {
+      await fetchInvoices();
+      renderInvoiceList();
+      renderSummaryTables();
+      alert('Invoice deleted successfully');
+    } else {
+      throw new Error('Failed to delete invoice');
+    }
+  } catch (error) {
+    console.error('Error deleting invoice:', error);
+    alert('Failed to delete invoice. Please try again.');
+  }
 }
 
 // ===== Quarterly Bonus Handling =====
@@ -354,6 +457,60 @@ function createReferrerTable(referrer) {
 }
 
 async function updatePaidStatus(id, paid) {
+  try {
+    const invoice = invoices.find((inv) => inv.id === id);
+    if (!invoice || invoice.createdBy !== currentUser) {
+      throw new Error("You are not authorized to update this invoice");
+    }
+
+    const response = await fetch(
+      `${config.API_BASE_URL}/update-invoice/${id}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          paid: paid,
+          currentUser: currentUser,
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    if (result.success) {
+      invoice.paid = paid;
+      updateInvoiceRowAppearance(id, paid);
+      renderSummaryTables();
+    } else {
+      throw new Error("Failed to update invoice paid status");
+    }
+  } catch (error) {
+    console.error("Error updating paid status:", error);
+    alert(error.message);
+    const checkbox = document.querySelector(
+      `tr[data-id="${id}"] input[type="checkbox"]`,
+    );
+    if (checkbox) {
+      checkbox.checked = !paid;
+    }
+  }
+}
+
+function updateInvoiceRowAppearance(id, paid) {
+  const row = document.querySelector(`tr[data-id="${id}"]`);
+  if (row) {
+    row.classList.toggle("paid-invoice", paid);
+    row.classList.toggle("unpaid-invoice", !paid);
+    row.querySelectorAll("td:not(:last-child)").forEach((td) => {
+      td.classList.toggle("paid-text", paid);
+      td.style.color = paid ? "green" : "";
+      td.style.textDecoration = paid ? "line-through" : "none";
+    });
+  }
+}
   try {
     const invoice = invoices.find((inv) => inv.id === id);
     if (!invoice || invoice.createdBy !== currentUser) {
