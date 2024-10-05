@@ -41,18 +41,36 @@ jobs:
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
 
+      - name: Check for changes
+        id: check_changes
+        run: |
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          COMMITS_SINCE_TAG=$(git rev-list $LATEST_TAG..HEAD --count)
+          if [ "$COMMITS_SINCE_TAG" -eq "0" ]; then
+            echo "No new commits since last tag. Skipping release."
+            echo "::set-output name=should_release::false"
+          else
+            echo "New commits found. Proceeding with release."
+            echo "::set-output name=should_release::true"
+          fi
+
       - name: Run release script
         id: release
+        if: steps.check_changes.outputs.should_release == 'true'
         run: |
           chmod +x ./release.sh
           echo "This is an automated release" | ./release.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true
 
       - name: Check release script output
+        if: steps.check_changes.outputs.should_release == 'true'
         run: |
           if [[ ${{ steps.release.outcome }} == 'failure' ]]; then
-            echo "Release script exited without creating a release. This is expected if there were no changes."
-            exit 0
+            echo "Release script failed. Please check the logs for more information."
+            exit 1
           fi
+
+      - name: No Release
+        if: steps.check_changes.outputs.should_release != 'true'
+        run: echo "No new release created as there were no new commits."
