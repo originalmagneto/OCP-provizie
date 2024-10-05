@@ -257,7 +257,20 @@ async function updateQuarterlyBonusPaidStatus(referrer, year, quarter, isPaid) {
 }
 
 function calculateQuarterlyBonus(invoices, year, quarter) {
-  // Implementation for calculating quarterly bonus
+  const startMonth = (quarter - 1) * 3 + 1;
+  const endMonth = quarter * 3;
+
+  return invoices
+    .filter(
+      (invoice) =>
+        invoice.year === year &&
+        invoice.month >= startMonth &&
+        invoice.month <= endMonth,
+    )
+    .reduce(
+      (total, invoice) => total + invoice.amount * invoice.bonusPercentage,
+      0,
+    );
 }
 
 // ===== Summary Table Rendering =====
@@ -275,7 +288,69 @@ function renderSummaryTables() {
 }
 
 function createReferrerTable(referrer) {
-  // Implementation for creating referrer table
+  const table = document.createElement("table");
+  table.className = `table table-sm summary-table ${referrer.toLowerCase().replace(/\s+/g, "-")}`;
+
+  const referrerInvoices = invoices.filter(
+    (invoice) => invoice.referrer === referrer,
+  );
+  const years = [
+    ...new Set(referrerInvoices.map((invoice) => invoice.year)),
+  ].sort((a, b) => b - a);
+
+  const referrerColor =
+    {
+      AdvokatiCHZ: "purple",
+      MKMs: "black",
+      Contax: "#D4AF37",
+    }[referrer] || "inherit";
+
+  const thead = table.createTHead();
+  const headerRow1 = thead.insertRow();
+  const headerCell1 = headerRow1.insertCell();
+  headerCell1.colSpan = 5;
+  headerCell1.className = "referrer-header";
+  headerCell1.style.backgroundColor = referrerColor;
+  headerCell1.style.color = "white";
+  headerCell1.textContent = referrer;
+
+  const headerRow2 = thead.insertRow();
+  headerRow2.insertCell().textContent = "Year";
+
+  for (let quarter = 1; quarter <= 4; quarter++) {
+    const th = headerRow2.insertCell();
+    th.className = "quarter-header";
+    th.innerHTML = `Q${quarter} <input type="checkbox" class="paid-checkbox" data-quarter="${quarter}" data-referrer="${referrer}" ${
+      referrer === currentUser ? "" : "disabled"
+    }>`;
+
+    const checkbox = th.querySelector(".paid-checkbox");
+    checkbox.addEventListener("change", (event) =>
+      updateQuarterStatus(event.target, referrer),
+    );
+  }
+
+  const tbody = table.createTBody();
+  years.forEach((year) => {
+    const row = tbody.insertRow();
+    const yearCell = row.insertCell();
+    yearCell.textContent = year;
+
+    for (let quarter = 1; quarter <= 4; quarter++) {
+      const cell = row.insertCell();
+      const quarterlyBonus = calculateQuarterlyBonus(
+        referrerInvoices,
+        year,
+        quarter,
+      );
+      const isPaid = getQuarterlyBonusPaidStatus(referrer, year, quarter);
+      cell.innerHTML = `<span class="quarter-amount ${
+        isPaid ? "paid" : "unpaid"
+      }">${quarterlyBonus.toFixed(2)}</span>`;
+    }
+  });
+
+  return table;
 }
 
 async function updatePaidStatus(id, paid) {
@@ -283,7 +358,48 @@ async function updatePaidStatus(id, paid) {
 }
 
 async function updateQuarterStatus(checkbox, referrer) {
-  // Implementation for updating quarter status
+  const quarter = checkbox.dataset.quarter;
+  const year = new Date().getFullYear(); // You might want to make this dynamic based on the current view
+  const isPaid = checkbox.checked;
+
+  try {
+    const response = await fetch(
+      `${config.API_BASE_URL}/update-quarterly-bonus-status`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ referrer, year, quarter, isPaid }),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    if (result.success) {
+      // Update the local state
+      if (!quarterlyBonusPaidStatus[referrer]) {
+        quarterlyBonusPaidStatus[referrer] = {};
+      }
+      quarterlyBonusPaidStatus[referrer][`${year}-${quarter}`] = isPaid;
+
+      // Update the UI
+      const table = checkbox.closest("table");
+      const amountSpan = table.querySelector(
+        `tbody tr:nth-child(${year - new Date().getFullYear() + 1}) td:nth-child(${parseInt(quarter) + 1}) .quarter-amount`,
+      );
+      if (amountSpan) {
+        updateSpanAppearance(amountSpan, isPaid);
+      }
+    } else {
+      throw new Error("Failed to update quarterly bonus status");
+    }
+  } catch (error) {
+    console.error("Error updating quarter status:", error);
+    alert("Failed to update quarterly bonus status. Please try again.");
+    checkbox.checked = !isPaid; // Revert the checkbox state
+  }
 }
 
 // Initialize the application
