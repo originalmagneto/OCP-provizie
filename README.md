@@ -1,4 +1,4 @@
-# Invoice Earnings Calculator
+# Invoice Earnings Calculator X
 
 ## Description
 This project is an Invoice Earnings Calculator designed to help manage and track invoices, calculate referral bonuses, and provide quarterly summaries. It's built with a Node.js backend using Express and SQLite, and a frontend using HTML, CSS, and JavaScript.
