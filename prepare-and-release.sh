@@ -1,5 +1,31 @@
 #!/bin/bash
 
+# Ensure we're on the main branch
+git checkout main
+
+# Fetch the latest changes
+git fetch origin
+
+# Check if there are diverged branches
+if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
+    echo "Local and remote branches have diverged. Attempting to merge..."
+    git merge --no-commit --no-ff origin/main
+    if [ $? -ne 0 ]; then
+        echo "Automatic merge failed. Please resolve conflicts manually, then run the script again."
+        exit 1
+    fi
+fi
+
+# Stage all changes, including untracked files
+git add -A
+
+# Check if there are any changes to commit
+if [[ -n $(git diff --cached --exit-code) ]]; then
+    echo "Changes detected. These will be included in the release commit."
+else
+    echo "No changes detected. Proceeding with release."
+fi
+
 # Fetch the latest changes from the remote repository
 git fetch origin
 
