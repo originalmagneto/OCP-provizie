@@ -50,6 +50,38 @@ function editInvoice(id) {
   console.log("Form populated for editing");
 }
 
+async function performEditInvoice(id) {
+  console.log("Performing edit for invoice:", id);
+  const invoice = invoices.find((inv) => inv.id === parseInt(id));
+  if (!invoice) {
+    console.error("Invoice not found:", id);
+    return;
+  }
+
+  // Populate form with invoice data
+  document.getElementById("year").value = invoice.year;
+  document.getElementById("month").value = invoice.month;
+  document.getElementById("client-name").value = invoice.clientName;
+  document.getElementById("invoice-amount").value = invoice.amount;
+  document.getElementById("referral-bonus").value = invoice.bonusPercentage;
+  document.getElementById("paid-status").checked = invoice.paid;
+
+  // Change form submission to update instead of create
+  const form = document.getElementById("invoice-form");
+  form.onsubmit = (e) => updateInvoice(e, id);
+
+  // Change button text
+  const submitButton = form.querySelector('button[type="submit"]');
+  if (submitButton) {
+    submitButton.textContent = "Update Invoice";
+  }
+
+  // Scroll to the form
+  form.scrollIntoView({ behavior: "smooth" });
+
+  console.log("Form populated for editing");
+}
+
 async function updateInvoice(event, id) {
   event.preventDefault();
   console.log("Updating invoice:", id);
