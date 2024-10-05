@@ -18,6 +18,96 @@ window.deleteInvoice = deleteInvoice;
 window.editInvoice = editInvoice;
 window.updatePaidStatus = updatePaidStatus;
 
+function editInvoice(id) {
+  console.log("Editing invoice:", id);
+  const invoice = invoices.find((inv) => inv.id === parseInt(id));
+  if (!invoice) {
+    console.error("Invoice not found:", id);
+    return;
+  }
+
+  // Populate form with invoice data
+  document.getElementById("year").value = invoice.year;
+  document.getElementById("month").value = invoice.month;
+  document.getElementById("client-name").value = invoice.clientName;
+  document.getElementById("invoice-amount").value = invoice.amount;
+  document.getElementById("referral-bonus").value = invoice.bonusPercentage;
+  document.getElementById("paid-status").checked = invoice.paid;
+
+  // Change form submission to update instead of create
+  const form = document.getElementById("invoice-form");
+  form.onsubmit = (e) => updateInvoice(e, id);
+
+  // Change button text
+  const submitButton = form.querySelector('button[type="submit"]');
+  if (submitButton) {
+    submitButton.textContent = "Update Invoice";
+  }
+
+  // Scroll to the form
+  form.scrollIntoView({ behavior: "smooth" });
+
+  console.log("Form populated for editing");
+}
+
+async function updateInvoice(event, id) {
+  event.preventDefault();
+  console.log("Updating invoice:", id);
+  const updatedInvoice = {
+    year: parseInt(document.getElementById("year").value),
+    month: parseInt(document.getElementById("month").value),
+    clientName: document.getElementById("client-name").value.trim(),
+    amount: parseFloat(document.getElementById("invoice-amount").value),
+    referrer: currentUser,
+    bonusPercentage: parseFloat(
+      document.getElementById("referral-bonus").value,
+    ),
+    paid: document.getElementById("paid-status").checked,
+    createdBy: currentUser,
+  };
+
+  console.log("Updated invoice data:", updatedInvoice);
+
+  try {
+    const response = await fetch(
+      `${config.API_BASE_URL}/update-invoice/${id}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ...updatedInvoice, currentUser }),
+      },
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to update invoice");
+    }
+
+    console.log("Invoice updated successfully");
+    await fetchInvoices();
+    renderInvoiceList();
+    renderSummaryTables();
+
+    // Reset form to create mode
+    const form = document.getElementById("invoice-form");
+    form.onsubmit = handleFormSubmit;
+    form.reset();
+
+    // Change button text back
+    const submitButton = form.querySelector('button[type="submit"]');
+    if (submitButton) {
+      submitButton.textContent = "Add Invoice";
+    }
+
+    alert("Invoice updated successfully");
+  } catch (error) {
+    console.error("Error updating invoice:", error);
+    alert(`Failed to update invoice: ${error.message}`);
+  }
+}
+
 // Function to set the current user display
 function setCurrentUserDisplay() {
   const currentUserDisplay = document.getElementById("currentUserDisplay");
@@ -112,10 +202,13 @@ async function fetchInvoices() {
       );
     }
     const data = await response.json();
-    invoices = data.map((invoice) => ({
-      ...invoice,
-      paid: Boolean(invoice.paid),
-    }));
+    invoices = data
+      .map((invoice) => ({
+        ...invoice,
+        paid: Boolean(invoice.paid),
+        date: new Date(invoice.year, invoice.month - 1, 1), // Create a date object for sorting
+      }))
+      .sort((a, b) => b.date - a.date); // Sort invoices by date, most recent first
     renderInvoiceList();
     renderSummaryTables();
   } catch (error) {
@@ -256,7 +349,6 @@ function renderInvoiceList() {
   invoices.forEach((invoice) => {
     const tr = document.createElement("tr");
     tr.setAttribute("data-id", invoice.id);
-    tr.style.textDecoration = invoice.paid ? "line-through" : "none";
     const isEditable = invoice.createdBy === currentUser;
     tr.innerHTML = `
             <td>${invoice.year}</td>
@@ -281,15 +373,30 @@ function renderInvoiceList() {
                 }
             </td>
         `;
+    updateInvoiceAppearance(tr, invoice.paid);
     tbody.appendChild(tr);
   });
 
   // Add event listeners
+  const updatePromises = [];
   tbody.querySelectorAll(".paid-status-checkbox").forEach((checkbox) => {
     checkbox.addEventListener("change", function () {
-      updatePaidStatus(this.dataset.id, this.checked);
+      const updatePromise = updatePaidStatus(this.dataset.id, this.checked);
+      updatePromises.push(updatePromise);
+      updatePromise.catch(() => {
+        // If the update fails, revert the checkbox state
+        this.checked = !this.checked;
+      });
     });
   });
+
+  Promise.all(updatePromises)
+    .then(() => {
+      console.log("All paid status updates completed successfully");
+    })
+    .catch((error) => {
+      console.error("Some paid status updates failed:", error);
+    });
 
   tbody.querySelectorAll(".edit-invoice").forEach((button) => {
     button.addEventListener("click", function () {
@@ -620,43 +727,87 @@ async function updateQuarterlyBonusPaidStatus(referrer, year, quarter, isPaid) {
   }
 }
 
-// This function is a duplicate and has been removed as per the prompt.
+function updateInvoiceAppearance(invoiceRow, paid) {
+  if (invoiceRow) {
+    invoiceRow.style.textDecoration = paid ? "line-through" : "none";
+    invoiceRow.style.color = paid ? "green" : "inherit";
+    const checkbox = invoiceRow.querySelector(".paid-status-checkbox");
+    if (checkbox) checkbox.checked = paid;
+    const amountCell = invoiceRow.querySelector("td:nth-child(4)");
+    if (amountCell) {
+      amountCell.classList.toggle("paid", paid);
+      amountCell.classList.toggle("unpaid", !paid);
+    }
+  }
+}
 
 // Function to update paid status of an invoice
-async function updatePaidStatus(id, paid) {
+function updatePaidStatus(id, paid) {
   console.log(`Updating paid status for invoice ${id} to ${paid}`);
-  try {
-    const response = await fetch(
-      `${config.API_BASE_URL}/update-invoice/${id}`,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ paid, currentUser }),
+
+  return new Promise((resolve, reject) => {
+    // Update UI immediately
+    const invoiceRow = document.querySelector(`tr[data-id="${id}"]`);
+    updateInvoiceAppearance(invoiceRow, paid);
+
+    // Update local data
+    const invoice = invoices.find((inv) => inv.id === parseInt(id));
+    if (invoice) {
+      invoice.paid = paid;
+    }
+
+    // Update summary tables
+    renderSummaryTables();
+
+    // Send update to server
+    fetch(`${config.API_BASE_URL}/update-invoice/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
       },
-    );
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || "Failed to update invoice");
-    }
-
-    const data = await response.json();
-
-    if (data.success) {
-      const invoice = invoices.find((inv) => inv.id === id);
-      if (invoice) {
-        invoice.paid = paid;
-        renderInvoiceList();
+      body: JSON.stringify({ paid, currentUser }),
+    })
+      .then((response) => {
+        if (!response.ok) {
+          return response.json().then((errorData) => {
+            throw new Error(errorData.message || "Failed to update invoice");
+          });
+        }
+        return response.json();
+      })
+      .then((data) => {
+        if (!data.success) {
+          throw new Error("Failed to update invoice");
+        }
+        resolve();
+      })
+      .catch((error) => {
+        console.error("Error updating invoice paid status:", error);
+        alert(`Failed to update invoice paid status: ${error.message}`);
+        // Revert UI changes if server update fails
+        updateInvoiceAppearance(invoiceRow, !paid);
+        // Revert local data changes
+        if (invoice) {
+          invoice.paid = !paid;
+        }
+        // Update summary tables again
         renderSummaryTables();
-      }
-    } else {
-      throw new Error(data.message || "Failed to update invoice");
+        reject(error);
+      });
+  });
+}
+
+function updateInvoiceAppearance(invoiceRow, paid) {
+  if (invoiceRow) {
+    invoiceRow.style.textDecoration = paid ? "line-through" : "none";
+    invoiceRow.style.color = paid ? "green" : "inherit";
+    const checkbox = invoiceRow.querySelector(".paid-status-checkbox");
+    if (checkbox) checkbox.checked = paid;
+    const amountCell = invoiceRow.querySelector("td:nth-child(4)");
+    if (amountCell) {
+      amountCell.classList.toggle("paid", paid);
+      amountCell.classList.toggle("unpaid", !paid);
     }
-  } catch (error) {
-    console.error("Error updating invoice paid status:", error);
-    alert(`Failed to update invoice paid status: ${error.message}`);
   }
 }
 
