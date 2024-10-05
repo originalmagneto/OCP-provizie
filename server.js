@@ -215,6 +215,22 @@ app.post("/change-password", (req, res) => {
 });
 
 app.get("/get-invoices", (req, res) => {
+
+  app.get("/invoices/:id", (req, res) => {
+    const { id } = req.params;
+    db.get("SELECT * FROM invoices WHERE id = ?", [id], (err, row) => {
+      if (err) {
+        console.error("Error fetching invoice:", err);
+        return res.status(500).json({ error: "Internal server error" });
+      }
+      if (!row) {
+        return res.status(404).json({ error: "Invoice not found" });
+      }
+      res.json(row);
+    });
+  });
+
+
   db.all("SELECT * FROM invoices", (err, rows) => {
     if (err) {
       console.error("Error fetching invoices:", err);
@@ -291,6 +307,72 @@ app.post("/save-client-name", (req, res) => {
 app.put("/update-invoice/:id", (req, res) => {
   const { id } = req.params;
   const {
+    year,
+    month,
+    clientName,
+    amount,
+    referrer,
+    bonusPercentage,
+    paid,
+    createdBy,
+    currentUser
+  } = req.body;
+
+  // Check if the user is authorized to update this invoice
+  db.get("SELECT createdBy FROM invoices WHERE id = ?", [id], (err, row) => {
+    if (err) {
+      console.error("Error fetching invoice:", err);
+      return res
+        .status(500)
+        .json({ success: false, message: "Failed to fetch invoice" });
+    }
+    if (!row) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Invoice not found" });
+    }
+    if (row.createdBy !== currentUser) {
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized to update this invoice",
+      });
+    }
+
+    // If authorized, proceed with the update
+    const query = `UPDATE invoices SET
+                   year = ?, month = ?, clientName = ?, amount = ?,
+                   referrer = ?, bonusPercentage = ?, paid = ?, createdBy = ?
+                   WHERE id = ?`;
+    const params = [
+      year,
+      month,
+      clientName,
+      amount,
+      referrer,
+      bonusPercentage,
+      paid ? 1 : 0,
+      createdBy,
+      id,
+    ];
+
+    db.run(query, params, function (err) {
+      if (err) {
+        console.error("Error updating invoice:", err);
+        return res
+          .status(500)
+          .json({ success: false, message: "Failed to update invoice" });
+      }
+      if (this.changes === 0) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Invoice not found" });
+      }
+      res.json({ success: true });
+    });
+  });
+});
+  const { id } = req.params;
+  const {
     paid,
     year,
     month,
@@ -365,6 +447,9 @@ app.put("/update-invoice/:id", (req, res) => {
 });
 
 app.delete("/delete-invoice/:id", (req, res) => {
+  const { id } = req.params;
+  const { currentUser } = req.body;
+
   const { id } = req.params;
   const { createdBy } = req.query;
 
