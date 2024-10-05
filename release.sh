@@ -3,6 +3,10 @@
 # Prevent additional commit for version bump
 VERSION_BUMP_COMMIT=false
 
+
+# Prevent additional commit for version bump
+VERSION_BUMP_COMMIT=false
+
 set -e
 
 # Function to increment version

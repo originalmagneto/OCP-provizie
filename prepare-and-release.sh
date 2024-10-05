@@ -1,5 +1,44 @@
 #!/bin/bash
 
+# Check for interrupted merge
+if [ -f .git/MERGE_HEAD ]; then
+    echo "Interrupted merge detected. Attempting to continue..."
+    git merge --continue
+    if [ $? -ne 0 ]; then
+        echo "Failed to continue merge. Please resolve conflicts manually and run the script again."
+        exit 1
+    fi
+fi
+
+# Function to check if a release is in progress
+release_in_progress() {
+    [ -f ".release_lock" ]
+}
+
+# Function to start release process
+start_release() {
+    touch .release_lock
+}
+
+# Function to end release process
+end_release() {
+    rm -f .release_lock
+}
+
+# Function to run release script only once
+run_release_once() {
+    if ! release_in_progress; then
+        start_release
+        ./release.sh
+        end_release
+    else
+        echo "Release process is already in progress. Skipping additional release."
+    fi
+}
+
+# Replace direct calls to release.sh with this function
+alias release_script=run_release_once
+
 set -e
 
 # Function to handle merge conflicts
