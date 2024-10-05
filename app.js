@@ -1,13 +1,8 @@
 // Use API_BASE_URL in your fetch calls, for example:
 // fetch(`${config.API_BASE_URL}/get-invoices`) TESTIK
+// No debugging code needed here
 
-console.log("Debugging: Checking for incorrect return statements");
-const lines = document.currentScript.textContent.split('\n');
-lines.forEach((line, index) => {
-    if (line.trim().startsWith('return') && !line.trim().startsWith('return;')) {
-        console.warn(`Potential issue on line ${index + 1}: ${line.trim()}`);
-    }
-});
+
 
 const config = {
   API_BASE_URL: "https://ocp-provizie-final.onrender.com",
@@ -18,6 +13,24 @@ let invoices = [];
 let clientNames = [];
 let quarterlyBonusPaidStatus = {};
 const currentUser = localStorage.getItem("currentUser");
+
+// Make fetchInvoices globally accessible
+window.fetchInvoices = fetchInvoices;
+
+// Make fetchClientNames globally accessible
+window.fetchClientNames = fetchClientNames;
+
+// Make fetchQuarterlyBonusPaidStatus globally accessible
+window.fetchQuarterlyBonusPaidStatus = fetchQuarterlyBonusPaidStatus;
+
+// Make renderSummaryTables globally accessible
+window.renderSummaryTables = renderSummaryTables;
+
+// Make handleFormSubmit globally accessible
+window.handleFormSubmit = handleFormSubmit;
+
+// Make renderInvoiceList globally accessible
+window.renderInvoiceList = renderInvoiceList;
 
 // Make updateQuarterStatus globally accessible
 window.updateQuarterStatus = updateQuarterStatus;
@@ -53,6 +66,9 @@ function setCurrentUserDisplay() {
 }
 
 // Function to initialize the application
+
+// ===== Initialization Functions =====
+
 async function init() {
   console.log("Initializing application");
   setCurrentUserDisplay();
@@ -86,7 +102,7 @@ async function init() {
 }
 
 // Add event listener for DOMContentLoaded
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", () => {
   if (!currentUser) {
     window.location.href = "login.html";
   } else {
@@ -110,6 +126,9 @@ document
   });
 
 // Function to fetch invoices from the server
+
+// ===== Data Fetching Functions =====
+
 async function fetchInvoices() {
   try {
     const response = await fetch(`${config.API_BASE_URL}/get-invoices`);
@@ -169,6 +188,9 @@ async function fetchQuarterlyBonusPaidStatus() {
 }
 
 // Function to handle form submission
+
+// ===== Form Handling Functions =====
+
 async function handleFormSubmit(event) {
   event.preventDefault();
   console.log("Form submitted");
@@ -252,6 +274,9 @@ async function handleFormSubmit(event) {
 }
 
 // Function to render the invoice list
+
+// ===== Rendering Functions =====
+
 function renderInvoiceList() {
   console.log("Rendering invoice list");
   const tbody = document.querySelector("#invoice-list tbody");
@@ -378,42 +403,6 @@ async function updateInvoice(event, id) {
   }
 }
 
-async function updatePaidStatus(id, paid) {
-  console.log(`Updating paid status for invoice ${id} to ${paid}`);
-  try {
-    const response = await fetch(
-      `${config.API_BASE_URL}/update-invoice/${id}`,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ paid, currentUser }),
-      },
-    );
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || "Failed to update invoice");
-    }
-
-    const data = await response.json();
-
-    if (data.success) {
-      const invoice = invoices.find((inv) => inv.id === id);
-      if (invoice) {
-        invoice.paid = paid;
-        updateInvoiceRowAppearance(id, paid);
-        renderSummaryTables();
-      }
-    } else {
-      throw new Error(data.message || "Failed to update invoice");
-    }
-  } catch (error) {
-    console.error("Error updating invoice paid status:", error);
-    alert(`Failed to update invoice paid status: ${error.message}`);
-  }
-}
   console.log("Rendering invoice list");
   const tbody = document.querySelector("#invoice-list tbody");
   if (!tbody) {
@@ -782,68 +771,7 @@ async function updateInvoice(event, id) {
     });
   });
 
-  console.log("Invoice list rendered successfully");
-}
-  console.log("Rendering invoice list");
-  const tbody = document.querySelector("#invoice-list tbody");
-  if (!tbody) {
-    console.error("Invoice list tbody not found");
-    return;
-  }
 
-  tbody.innerHTML = "";
-  invoices.forEach((invoice) => {
-    const tr = document.createElement("tr");
-    tr.setAttribute("data-id", invoice.id);
-    tr.style.textDecoration = invoice.paid ? "line-through" : "none";
-    const isEditable = invoice.createdBy === currentUser;
-    tr.innerHTML = `
-            <td>${invoice.year}</td>
-            <td>${invoice.month}</td>
-            <td>${invoice.clientName}</td>
-            <td>€${invoice.amount.toFixed(2)}</td>
-            <td>${invoice.referrer}</td>
-            <td>${(invoice.bonusPercentage * 100).toFixed(0)}%</td>
-            <td>
-                <input type="checkbox" class="paid-status-checkbox" ${invoice.paid ? "checked" : ""}
-                       data-id="${invoice.id}"
-                       ${isEditable ? "" : "disabled"}>
-            </td>
-            <td>
-                ${
-                  isEditable
-                    ? `
-                    <button class="edit-invoice" data-id="${invoice.id}">Edit</button>
-                    <button class="delete-invoice" data-id="${invoice.id}">Delete</button>
-                `
-                    : ""
-                }
-            </td>
-        `;
-    tbody.appendChild(tr);
-  });
-
-  // Add event listeners
-  tbody.querySelectorAll(".paid-status-checkbox").forEach((checkbox) => {
-    checkbox.addEventListener("change", function () {
-      updatePaidStatus(this.dataset.id, this.checked);
-    });
-  });
-
-  tbody.querySelectorAll(".edit-invoice").forEach((button) => {
-    button.addEventListener("click", function () {
-      editInvoice(this.dataset.id);
-    });
-  });
-
-  tbody.querySelectorAll(".delete-invoice").forEach((button) => {
-    button.addEventListener("click", function () {
-      deleteInvoice(this.dataset.id);
-    });
-  });
-
-  console.log("Invoice list rendered successfully");
-}
 
 // Function to render summary tables
 function renderSummaryTables() {
@@ -1028,62 +956,6 @@ function calculateQuarterlyBonus(invoices, year, quarter) {
     );
 }
 
-function editInvoice(id) {
-  const invoice = invoices.find((inv) => inv.id === id);
-  if (!invoice) return;
-
-  // Populate form with invoice data for editing
-  document.getElementById("year").value = invoice.year;
-  document.getElementById("month").value = invoice.month;
-  document.getElementById("client-name").value = invoice.clientName;
-  document.getElementById("invoice-amount").value = invoice.amount;
-  document.getElementById("referral-bonus").value = invoice.bonusPercentage;
-  document.getElementById("paid-status").checked = invoice.paid;
-
-  // Change form submission to update instead of create
-  const form = document.getElementById("invoice-form");
-  form.onsubmit = (e) => updateInvoice(e, id);
-
-  // Scroll to the form
-  form.scrollIntoView({ behavior: 'smooth' });
-}
-
-function updateInvoice(event, id) {
-  event.preventDefault();
-  const updatedInvoice = {
-    year: parseInt(document.getElementById("year").value),
-    month: parseInt(document.getElementById("month").value),
-    clientName: document.getElementById("client-name").value.trim(),
-    amount: parseFloat(document.getElementById("invoice-amount").value),
-    referrer: currentUser,
-    bonusPercentage: parseFloat(document.getElementById("referral-bonus").value),
-    paid: document.getElementById("paid-status").checked,
-    createdBy: currentUser,
-  };
-
-  fetch(`${config.API_BASE_URL}/update-invoice/${id}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ ...updatedInvoice, currentUser }),
-  })
-    .then(response => {
-      if (!response.ok) throw new Error('Failed to update invoice');
-      return response.json();
-    })
-    .then(() => {
-      fetchInvoices(); // Refresh the invoice list
-      // Reset form to create mode
-      const form = document.getElementById("invoice-form");
-      form.onsubmit = handleFormSubmit;
-      form.reset();
-    })
-    .catch(error => {
-      console.error("Error updating invoice:", error);
-      alert(`Failed to update invoice: ${error.message}`);
-    });
-}
   const invoice = invoices.find((inv) => inv.id === id);
   if (!invoice) return;
 
@@ -1392,12 +1264,11 @@ async function updatePaidStatus(id, paid) {
       alert(`Failed to update invoice paid status: ${error.message}`);
     });
 }
-
 function updateInvoiceRowAppearance(id, paid) {
   const row = document.querySelector(`tr[data-id="${id}"]`);
   if (row) {
-    row.style.textDecoration = paid ? "line-through" : "none";
-    row.style.color = paid ? "red" : "inherit";
+    row.classList.toggle('paid-invoice', paid);
+    row.classList.toggle('unpaid-invoice', !paid);
   }
 }
   console.log(`Updating paid status for invoice ${id} to ${paid}`);
