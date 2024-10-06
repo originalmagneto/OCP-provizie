@@ -102,8 +102,7 @@
 
         <script>
             const config = {
-                API_BASE_URL:
-                    "https://ocp-provizie.netlify.app/.netlify/functions",
+                API_BASE_URL: "/.netlify/functions",
             };
             const loginForm = document.getElementById("loginForm");
             const changePasswordForm =
@@ -118,15 +117,7 @@
                 const username = document.getElementById("username").value;
                 const password = document.getElementById("password").value;
 
-                console.log("Attempting login...");
-                console.log("Username:", username);
-                console.log("Password length:", password.length);
-
                 try {
-                    console.log(
-                        "Sending login request to:",
-                        `${config.API_BASE_URL}/login`,
-                    );
                     const response = await fetch(
                         `${config.API_BASE_URL}/login`,
                         {
@@ -136,52 +127,28 @@
                         },
                     );
 
-                    console.log("Response status:", response.status);
-                    console.log("Response headers:", response.headers);
-
-                    if (response.status === 502) {
-                        console.error("502 Bad Gateway error");
-                        throw new Error(
-                            "Server is currently unavailable. Please try again later.",
-                        );
-                    }
-
                     if (!response.ok) {
-                        console.error(
-                            "Non-OK response:",
-                            response.status,
-                            response.statusText,
-                        );
                         throw new Error(
                             `HTTP error! status: ${response.status}`,
                         );
                     }
 
                     const data = await response.json();
-                    console.log("Login response data:", data);
 
                     if (data.success) {
-                        console.log("Login successful");
                         if (data.requirePasswordChange) {
-                            console.log("Password change required");
                             loginContainer.style.display = "none";
                             changePasswordContainer.style.display = "block";
                         } else {
-                            console.log("Redirecting to index.html");
                             localStorage.setItem("currentUser", username);
                             window.location.href = "index.html";
                         }
                     } else {
-                        console.log("Login failed:", data.message);
                         alert(data.message || "Invalid username or password");
                     }
                 } catch (error) {
                     console.error("Login error:", error);
-                    console.error("Error stack:", error.stack);
-                    alert(
-                        error.message ||
-                            "An error occurred during login. Please try again.",
-                    );
+                    alert("An error occurred during login. Please try again.");
                 }
             });
 
@@ -193,18 +160,12 @@
                 const confirmPassword =
                     document.getElementById("confirmPassword").value;
 
-                console.log("Attempting password change for user:", username);
-
                 if (newPassword !== confirmPassword) {
-                    console.log(
-                        "Password change failed: Passwords do not match",
-                    );
                     alert("Passwords do not match");
                     return;
                 }
 
                 try {
-                    console.log("Sending password change request...");
                     const response = await fetch(
                         `${config.API_BASE_URL}/change-password`,
                         {
@@ -214,11 +175,6 @@
                         },
                     );
 
-                    console.log(
-                        "Password change response status:",
-                        response.status,
-                    );
-
                     if (!response.ok) {
                         throw new Error(
                             `HTTP error! status: ${response.status}`,
@@ -226,10 +182,8 @@
                     }
 
                     const data = await response.json();
-                    console.log("Password change response:", data);
 
                     if (data.success) {
-                        console.log("Password changed successfully");
                         alert(
                             "Password changed successfully. Please log in with your new password.",
                         );
@@ -237,7 +191,6 @@
                         changePasswordContainer.style.display = "none";
                         document.getElementById("password").value = "";
                     } else {
-                        console.log("Failed to change password:", data.message);
                         alert(
                             "Failed to change password: " +
                                 (data.message || "Unknown error"),
