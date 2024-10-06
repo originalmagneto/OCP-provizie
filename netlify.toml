@@ -1,14 +1,13 @@
 [build]
   publish = "."
-  command = "# no build command"
   functions = "functions"
+
+[[redirects]]
+  from = "/*"
+  to = "/login.html"
+  status = 200
 
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
-  status = 200
-
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
   status = 200

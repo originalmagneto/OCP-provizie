@@ -132,6 +132,12 @@
 
                     console.log("Response status:", response.status);
 
+                    if (response.status === 502) {
+                        throw new Error(
+                            "Server is currently unavailable. Please try again later.",
+                        );
+                    }
+
                     if (!response.ok) {
                         throw new Error(
                             `HTTP error! status: ${response.status}`,
@@ -154,11 +160,14 @@
                         }
                     } else {
                         console.log("Login failed");
-                        alert("Invalid username or password");
+                        alert(data.message || "Invalid username or password");
                     }
                 } catch (error) {
                     console.error("Login error:", error);
-                    alert("An error occurred during login. Please try again.");
+                    alert(
+                        error.message ||
+                            "An error occurred during login. Please try again.",
+                    );
                 }
             });
 
