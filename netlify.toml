@@ -1,4 +1,4 @@
-[build][build]
+[build]
   publish = "."
   command = "# no build command"
   functions = "functions"
