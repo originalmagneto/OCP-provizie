@@ -1,3 +1,21 @@
+const bcrypt = require("bcrypt");
+
+// Simulated user database
+const users = {
+  AdvokatiCHZ: {
+    password: "$2b$10$X4kv7j5ZcG2bYOvhHpgTBO0Hp/9zcfOLRXjI0tsf6IMI0kdSqsmZK",
+    requirePasswordChange: true,
+  },
+  MKMs: {
+    password: "$2b$10$X4kv7j5ZcG2bYOvhHpgTBO0Hp/9zcfOLRXjI0tsf6IMI0kdSqsmZK",
+    requirePasswordChange: true,
+  },
+  Contax: {
+    password: "$2b$10$X4kv7j5ZcG2bYOvhHpgTBO0Hp/9zcfOLRXjI0tsf6IMI0kdSqsmZK",
+    requirePasswordChange: true,
+  },
+};
+
 exports.handler = async (event) => {
   console.log("Login function invoked");
   console.log("HTTP Method:", event.httpMethod);

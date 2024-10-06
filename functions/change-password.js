@@ -1,8 +1,8 @@
-const bcrypt = require('bcrypt');
-const path = require('path');
-const sqlite3 = require('sqlite3').verbose();
+const bcrypt = require("bcrypt");
+const path = require("path");
+const sqlite3 = require("sqlite3").verbose();
 
-const dbPath = path.join('/tmp', 'users.db');
+const dbPath = path.join("/tmp", "users.db");
 let db;
 
 function initializeDatabase() {
@@ -20,6 +20,21 @@ function initializeDatabase() {
 }
 
 exports.handler = async (event) => {
+  // Simulated user database
+  const users = {
+    AdvokatiCHZ: {
+      password: "$2b$10$X4kv7j5ZcG2bYOvhHpgTBO0Hp/9zcfOLRXjI0tsf6IMI0kdSqsmZK",
+      requirePasswordChange: true,
+    },
+    MKMs: {
+      password: "$2b$10$X4kv7j5ZcG2bYOvhHpgTBO0Hp/9zcfOLRXjI0tsf6IMI0kdSqsmZK",
+      requirePasswordChange: true,
+    },
+    Contax: {
+      password: "$2b$10$X4kv7j5ZcG2bYOvhHpgTBO0Hp/9zcfOLRXjI0tsf6IMI0kdSqsmZK",
+      requirePasswordChange: true,
+    },
+  };
   console.log("Change password function invoked");
   console.log("HTTP Method:", event.httpMethod);
 
@@ -72,7 +87,7 @@ exports.handler = async (event) => {
               }),
             });
           }
-        }
+        },
       );
     });
   } catch (error) {
