@@ -1,14 +1,13 @@
 {
   "name": "ocp-provizie-v3",
+  "version": "0.0.316",
+  "description": "",
+  "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "version": "0.0.316",
-  "main": "app.js",
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
   "dependencies": {}
-}
 }

@@ -1,7 +1,7 @@
 [build]
   publish = "."
   functions = "functions"
-  command = "npm install"
+  command = "node -e \"console.log(JSON.parse(require('fs').readFileSync('package.json', 'utf8')))\""
 
 [[redirects]]
   from = "/*"
