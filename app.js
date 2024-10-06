@@ -2,8 +2,7 @@
 // fetch(`${config.API_BASE_URL}/get-invoices`)
 
 const config = {
-  API_BASE_URL: "https://your-netlify-app-name.netlify.app",
-  API_BASE_URL: "https://ocp-provizie-final.onrender.com",
+  API_BASE_URL: "https://ocp-provizie.netlify.app/.netlify/functions",
 };
 
 // Initialize global variables

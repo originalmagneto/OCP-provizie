@@ -101,6 +101,10 @@
         </div>
 
         <script>
+            const config = {
+                API_BASE_URL:
+                    "https://ocp-provizie.netlify.app/.netlify/functions",
+            };
             const loginForm = document.getElementById("loginForm");
             const changePasswordForm =
                 document.getElementById("changePasswordForm");
@@ -115,12 +119,14 @@
                 const password = document.getElementById("password").value;
 
                 try {
-                    const response = await fetch(`${window.location.origin}/login`, {
-                    const response = await fetch("/login", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ username, password }),
-                    });
+                    const response = await fetch(
+                        `${config.API_BASE_URL}/login`,
+                        {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ username, password }),
+                        },
+                    );
 
                     const data = await response.json();
 
