@@ -1,15 +1,24 @@
 const sqlite3 = require("sqlite3").verbose();
 const bcrypt = require("bcrypt");
 const path = require("path");
+const fs = require("fs");
 
-// Use a fixed path for the database file in the project directory
-const dbPath = path.join(__dirname, "users.db");
+// Use /tmp directory for the database file in Netlify Functions
+const dbPath = path.join("/tmp", "users.db");
 let db;
 let databaseInitialized = false;
 
 function initializeDatabase() {
   return new Promise((resolve, reject) => {
     console.log("Initializing database...");
+    console.log("Database path:", dbPath);
+
+    // Check if the directory exists, if not create it
+    const dbDir = path.dirname(dbPath);
+    if (!fs.existsSync(dbDir)) {
+      fs.mkdirSync(dbDir, { recursive: true });
+    }
+
     db = new sqlite3.Database(
       dbPath,
       sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
@@ -124,6 +133,7 @@ exports.handler = async (event) => {
           body: JSON.stringify({
             error: "Server error during initialization",
             details: error.message,
+            stack: error.stack,
           }),
         };
       }
@@ -145,6 +155,7 @@ exports.handler = async (event) => {
                 success: false,
                 message: "Server error",
                 error: err.message,
+                stack: err.stack,
               }),
             });
             return;
@@ -171,6 +182,7 @@ exports.handler = async (event) => {
                   success: false,
                   message: "Server error",
                   error: err.message,
+                  stack: err.stack,
                 }),
               });
               return;
