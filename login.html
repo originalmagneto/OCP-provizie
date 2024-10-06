@@ -101,214 +101,219 @@
         </div>
 
         <script>
-            const config = {
-                API_BASE_URL: "/.netlify/functions",
-            };
-            const loginForm = document.getElementById("loginForm");
-            const changePasswordForm =
-                document.getElementById("changePasswordForm");
-            const loginContainer = document.getElementById("loginContainer");
-            const changePasswordContainer = document.getElementById(
-                "changePasswordContainer"
-            );
 
-            loginForm.addEventListener("submit", async (e) => {
-                e.preventDefault();
-                const username = document.getElementById("username").value;
-                const password = document.getElementById("password").value;
+                    <button id="testFunction">Test Function</button>
 
-                console.log("Attempting login for user:", username);
+            <script>
 
-                try {
-                    const url = `${config.API_BASE_URL}/login`;
-                    console.log("Sending login request to:", url);
+                const config = {
+                    API_BASE_URL: "/.netlify/functions",
+                };
+                const loginForm = document.getElementById("loginForm");
+                const changePasswordForm =
+                    document.getElementById("changePasswordForm");
+                const loginContainer = document.getElementById("loginContainer");
+                const changePasswordContainer = document.getElementById(
+                    "changePasswordContainer"
+                );
 
-                    const requestBody = JSON.stringify({ username, password });
-                    console.log("Login request body:", requestBody);
+                loginForm.addEventListener("submit", async (e) => {
+                    e.preventDefault();
+                    const username = document.getElementById("username").value;
+                    const password = document.getElementById("password").value;
 
-                    const response = await fetch(url, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: requestBody,
-                    });
+                    console.log("Attempting login for user:", username);
 
-                    console.log("Login response status:", response.status);
-
-                    const responseText = await response.text();
-                    console.log("Raw login response:", responseText);
-
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}, response: ${responseText}`);
-                    }
-
-                    let data;
                     try {
-                        data = JSON.parse(responseText);
+                        const url = `${config.API_BASE_URL}/login`;
+                        console.log("Sending login request to:", url);
+
+                        const requestBody = JSON.stringify({ username, password });
+                        console.log("Login request body:", requestBody);
+
+                        const response = await fetch(url, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: requestBody,
+                        });
+
+                        console.log("Login response status:", response.status);
+
+                        const responseText = await response.text();
+                        console.log("Raw login response:", responseText);
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}, response: ${responseText}`);
+                        }
+
+                        let data;
+                        try {
+                            data = JSON.parse(responseText);
+                        } catch (error) {
+                            console.error("Error parsing JSON response:", error);
+                            throw new Error("Invalid JSON response from server");
+                        }
+
+                        console.log("Parsed login response:", data);
+
+                        if (data.success) {
+                            console.log("Login successful");
+                            if (data.requirePasswordChange) {
+                                console.log("Password change required");
+                                loginContainer.style.display = "none";
+                                changePasswordContainer.style.display = "block";
+                            } else {
+                                console.log("Redirecting to index.html");
+                                localStorage.setItem("currentUser", username);
+                                window.location.href = "index.html";
+                            }
+                        } else {
+                            console.log("Login failed:", data.message);
+                            alert(data.message || "Invalid username or password");
+                        }
                     } catch (error) {
-                        console.error("Error parsing JSON response:", error);
-                        throw new Error("Invalid JSON response from server");
+                        console.error("Login error:", error);
+                        alert("An error occurred during login: " + error.message);
                     }
+                });
+                    e.preventDefault();
+                    const username = document.getElementById("username").value;
+                    const password = document.getElementById("password").value;
 
-                    console.log("Parsed login response:", data);
+                    console.log("Login attempt for user:", username);
 
-                    if (data.success) {
-                        console.log("Login successful");
-                        if (data.requirePasswordChange) {
-                            console.log("Password change required");
-                            loginContainer.style.display = "none";
-                            changePasswordContainer.style.display = "block";
-                        } else {
-                            console.log("Redirecting to index.html");
-                            localStorage.setItem("currentUser", username);
-                            window.location.href = "index.html";
-                        }
-                    } else {
-                        console.log("Login failed:", data.message);
-                        alert(data.message || "Invalid username or password");
-                    }
-                } catch (error) {
-                    console.error("Login error:", error);
-                    alert("An error occurred during login: " + error.message);
-                }
-            });
-                e.preventDefault();
-                const username = document.getElementById("username").value;
-                const password = document.getElementById("password").value;
-
-                console.log("Login attempt for user:", username);
-
-                try {
-                    console.log("Sending login request...");
-                    const response = await fetch(
-                        `${config.API_BASE_URL}/login`,
-                        {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ username, password }),
-                        }
-                    );
-
-                    console.log("Login response status:", response.status);
-
-                    if (!response.ok) {
-                        const errorText = await response.text();
-                        console.error("Login error response:", errorText);
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-
-                    const data = await response.json();
-                    console.log("Login response:", data);
-
-                    if (data.success) {
-                        console.log("Login successful");
-                        if (data.requirePasswordChange) {
-                            console.log("Password change required");
-                            loginContainer.style.display = "none";
-                            changePasswordContainer.style.display = "block";
-                        } else {
-                            console.log("Redirecting to index.html");
-                            localStorage.setItem("currentUser", username);
-                            window.location.href = "index.html";
-                        }
-                    } else {
-                        console.log("Login failed:", data.message);
-                        alert(data.message || "Invalid username or password");
-                    }
-                } catch (error) {
-                    console.error("Login error:", error);
-                    alert("An error occurred during login. Please try again.");
-                }
-            });
-                e.preventDefault();
-                const username = document.getElementById("username").value;
-                const password = document.getElementById("password").value;
-
-                try {
-                    const response = await fetch(
-                        `${config.API_BASE_URL}/login`,
-                        {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ username, password }),
-                        },
-                    );
-
-                    if (!response.ok) {
-                        throw new Error(
-                            `HTTP error! status: ${response.status}`,
+                    try {
+                        console.log("Sending login request...");
+                        const response = await fetch(
+                            `${config.API_BASE_URL}/login`,
+                            {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ username, password }),
+                            }
                         );
-                    }
 
-                    const data = await response.json();
+                        console.log("Login response status:", response.status);
 
-                    if (data.success) {
-                        if (data.requirePasswordChange) {
-                            loginContainer.style.display = "none";
-                            changePasswordContainer.style.display = "block";
-                        } else {
-                            localStorage.setItem("currentUser", username);
-                            window.location.href = "index.html";
+                        if (!response.ok) {
+                            const errorText = await response.text();
+                            console.error("Login error response:", errorText);
+                            throw new Error(`HTTP error! status: ${response.status}`);
                         }
-                    } else {
-                        alert(data.message || "Invalid username or password");
+
+                        const data = await response.json();
+                        console.log("Login response:", data);
+
+                        if (data.success) {
+                            console.log("Login successful");
+                            if (data.requirePasswordChange) {
+                                console.log("Password change required");
+                                loginContainer.style.display = "none";
+                                changePasswordContainer.style.display = "block";
+                            } else {
+                                console.log("Redirecting to index.html");
+                                localStorage.setItem("currentUser", username);
+                                window.location.href = "index.html";
+                            }
+                        } else {
+                            console.log("Login failed:", data.message);
+                            alert(data.message || "Invalid username or password");
+                        }
+                    } catch (error) {
+                        console.error("Login error:", error);
+                        alert("An error occurred during login. Please try again.");
                     }
-                } catch (error) {
-                    console.error("Login error:", error);
-                    alert("An error occurred during login. Please try again.");
-                }
-            });
+                });
+                    e.preventDefault();
+                    const username = document.getElementById("username").value;
+                    const password = document.getElementById("password").value;
 
-            changePasswordForm.addEventListener("submit", async (e) => {
-                e.preventDefault();
-                const username = document.getElementById("username").value;
-                const newPassword =
-                    document.getElementById("newPassword").value;
-                const confirmPassword =
-                    document.getElementById("confirmPassword").value;
-
-                if (newPassword !== confirmPassword) {
-                    alert("Passwords do not match");
-                    return;
-                }
-
-                try {
-                    const response = await fetch(
-                        `${config.API_BASE_URL}/change-password`,
-                        {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ username, newPassword }),
-                        },
-                    );
-
-                    if (!response.ok) {
-                        throw new Error(
-                            `HTTP error! status: ${response.status}`,
+                    try {
+                        const response = await fetch(
+                            `${config.API_BASE_URL}/login`,
+                            {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ username, password }),
+                            },
                         );
+
+                        if (!response.ok) {
+                            throw new Error(
+                                `HTTP error! status: ${response.status}`,
+                            );
+                        }
+
+                        const data = await response.json();
+
+                        if (data.success) {
+                            if (data.requirePasswordChange) {
+                                loginContainer.style.display = "none";
+                                changePasswordContainer.style.display = "block";
+                            } else {
+                                localStorage.setItem("currentUser", username);
+                                window.location.href = "index.html";
+                            }
+                        } else {
+                            alert(data.message || "Invalid username or password");
+                        }
+                    } catch (error) {
+                        console.error("Login error:", error);
+                        alert("An error occurred during login. Please try again.");
+                    }
+                });
+
+                changePasswordForm.addEventListener("submit", async (e) => {
+                    e.preventDefault();
+                    const username = document.getElementById("username").value;
+                    const newPassword =
+                        document.getElementById("newPassword").value;
+                    const confirmPassword =
+                        document.getElementById("confirmPassword").value;
+
+                    if (newPassword !== confirmPassword) {
+                        alert("Passwords do not match");
+                        return;
                     }
 
-                    const data = await response.json();
+                    try {
+                        const response = await fetch(
+                            `${config.API_BASE_URL}/change-password`,
+                            {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ username, newPassword }),
+                            },
+                        );
 
-                    if (data.success) {
+                        if (!response.ok) {
+                            throw new Error(
+                                `HTTP error! status: ${response.status}`,
+                            );
+                        }
+
+                        const data = await response.json();
+
+                        if (data.success) {
+                            alert(
+                                "Password changed successfully. Please log in with your new password.",
+                            );
+                            loginContainer.style.display = "block";
+                            changePasswordContainer.style.display = "none";
+                            document.getElementById("password").value = "";
+                        } else {
+                            alert(
+                                "Failed to change password: " +
+                                    (data.message || "Unknown error"),
+                            );
+                        }
+                    } catch (error) {
+                        console.error("Password change error:", error);
                         alert(
-                            "Password changed successfully. Please log in with your new password.",
-                        );
-                        loginContainer.style.display = "block";
-                        changePasswordContainer.style.display = "none";
-                        document.getElementById("password").value = "";
-                    } else {
-                        alert(
-                            "Failed to change password: " +
-                                (data.message || "Unknown error"),
+                            "An error occurred while changing the password. Please try again.",
                         );
                     }
-                } catch (error) {
-                    console.error("Password change error:", error);
-                    alert(
-                        "An error occurred while changing the password. Please try again.",
-                    );
-                }
-            });
+                });
         </script>
     </body>
 </html>
