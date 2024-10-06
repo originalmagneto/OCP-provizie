@@ -69,6 +69,11 @@ function checkAndInitializeDefaultUsers() {
         return;
       }
 
+      console.log(
+        "Existing users:",
+        rows.map((row) => row.username),
+      );
+
       const existingUsernames = rows.map((row) => row.username);
 
       const promises = defaultUsers.map((user) => {
@@ -102,7 +107,12 @@ function checkAndInitializeDefaultUsers() {
         return Promise.resolve();
       });
 
-      Promise.all(promises).then(resolve).catch(reject);
+      Promise.all(promises)
+        .then(() => {
+          console.log("Default users initialization complete");
+          resolve();
+        })
+        .catch(reject);
     });
   });
 }
@@ -172,7 +182,9 @@ exports.handler = async (event) => {
             return;
           }
 
-          console.log("User found, comparing passwords");
+          console.log("User found:", user);
+          console.log("Stored hashed password:", user.password);
+          console.log("Comparing passwords");
           bcrypt.compare(password, user.password, (err, result) => {
             if (err) {
               console.error("Password comparison error:", err);
@@ -187,6 +199,7 @@ exports.handler = async (event) => {
               });
               return;
             }
+            console.log("Password comparison result:", result);
             if (result) {
               console.log("Password match, login successful for:", username);
               resolve({
