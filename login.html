@@ -119,8 +119,14 @@
                 const password = document.getElementById("password").value;
 
                 console.log("Attempting login...");
+                console.log("Username:", username);
+                console.log("Password length:", password.length);
 
                 try {
+                    console.log(
+                        "Sending login request to:",
+                        `${config.API_BASE_URL}/login`,
+                    );
                     const response = await fetch(
                         `${config.API_BASE_URL}/login`,
                         {
@@ -131,21 +137,28 @@
                     );
 
                     console.log("Response status:", response.status);
+                    console.log("Response headers:", response.headers);
 
                     if (response.status === 502) {
+                        console.error("502 Bad Gateway error");
                         throw new Error(
                             "Server is currently unavailable. Please try again later.",
                         );
                     }
 
                     if (!response.ok) {
+                        console.error(
+                            "Non-OK response:",
+                            response.status,
+                            response.statusText,
+                        );
                         throw new Error(
                             `HTTP error! status: ${response.status}`,
                         );
                     }
 
                     const data = await response.json();
-                    console.log("Login response:", data);
+                    console.log("Login response data:", data);
 
                     if (data.success) {
                         console.log("Login successful");
@@ -159,11 +172,12 @@
                             window.location.href = "index.html";
                         }
                     } else {
-                        console.log("Login failed");
+                        console.log("Login failed:", data.message);
                         alert(data.message || "Invalid username or password");
                     }
                 } catch (error) {
                     console.error("Login error:", error);
+                    console.error("Error stack:", error.stack);
                     alert(
                         error.message ||
                             "An error occurred during login. Please try again.",
