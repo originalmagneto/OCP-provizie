@@ -20,6 +20,78 @@ function initializeDatabase() {
 }
 
 exports.handler = async (event) => {
+  console.log("Change password function invoked");
+  console.log("HTTP Method:", event.httpMethod);
+  console.log("Request body:", event.body);
+
+  if (event.httpMethod !== "POST") {
+    console.log("Invalid HTTP method:", event.httpMethod);
+    return {
+      statusCode: 405,
+      body: JSON.stringify({ error: "Method Not Allowed" }),
+    };
+  }
+
+  try {
+    console.log("Initializing database...");
+    await initializeDatabase();
+    console.log("Database initialized successfully");
+
+    const { username, newPassword } = JSON.parse(event.body);
+    console.log("Change password attempt for username:", username);
+
+    console.log("Hashing new password...");
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    console.log("Password hashed successfully");
+
+    console.log("Updating password in database...");
+    const result = await new Promise((resolve, reject) => {
+      db.run(
+        "UPDATE users SET password = ?, requirePasswordChange = 0 WHERE username = ?",
+        [hashedPassword, username],
+        function (err) {
+          if (err) reject(err);
+          else resolve(this);
+        }
+      );
+    });
+
+    if (result.changes === 0) {
+      console.log("No user found with username:", username);
+      return {
+        statusCode: 404,
+        body: JSON.stringify({
+          success: false,
+          message: "User not found",
+        }),
+      };
+    }
+
+    console.log("Password updated successfully for:", username);
+    return {
+      statusCode: 200,
+      body: JSON.stringify({
+        success: true,
+        message: "Password updated successfully",
+      }),
+    };
+  } catch (error) {
+    console.error("Error in change password function:", error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        error: "Server error",
+        details: error.message,
+      }),
+    };
+  } finally {
+    if (db) {
+      console.log("Closing database connection...");
+      db.close();
+      console.log("Database connection closed");
+    }
+  }
+};
   // Simulated user database
   const users = {
     AdvokatiCHZ: {
