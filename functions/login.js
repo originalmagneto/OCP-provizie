@@ -1,7 +1,108 @@
+const sqlite3 = require("sqlite3").verbose();
+const bcrypt = require("bcrypt");
+const path = require("path");
+
+// Use a fixed path for the database file in the project directory
+const dbPath = path.join(__dirname, "users.db");
+let db;
+let databaseInitialized = false;
+
+function initializeDatabase() {
+  return new Promise((resolve, reject) => {
+    console.log("Initializing database...");
+    db = new sqlite3.Database(
+      dbPath,
+      sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
+      (err) => {
+        if (err) {
+          console.error("Error opening database:", err);
+          reject(err);
+        } else {
+          console.log("Database opened successfully");
+          db.run(
+            `CREATE TABLE IF NOT EXISTS users (
+          username TEXT PRIMARY KEY,
+          password TEXT,
+          requirePasswordChange INTEGER
+        )`,
+            (err) => {
+              if (err) {
+                console.error("Error creating users table:", err);
+                reject(err);
+              } else {
+                console.log("Users table created or already exists");
+                checkAndInitializeDefaultUsers().then(resolve).catch(reject);
+              }
+            },
+          );
+        }
+      },
+    );
+  });
+}
+
+function checkAndInitializeDefaultUsers() {
+  return new Promise((resolve, reject) => {
+    const defaultUsers = [
+      {
+        username: "AdvokatiCHZ",
+        password: "default123",
+        requirePasswordChange: 1,
+      },
+      { username: "MKMs", password: "default123", requirePasswordChange: 1 },
+      { username: "Contax", password: "default123", requirePasswordChange: 1 },
+    ];
+
+    db.all("SELECT username FROM users", [], (err, rows) => {
+      if (err) {
+        console.error("Error checking existing users:", err);
+        reject(err);
+        return;
+      }
+
+      const existingUsernames = rows.map((row) => row.username);
+
+      const promises = defaultUsers.map((user) => {
+        if (!existingUsernames.includes(user.username)) {
+          return new Promise((resolve, reject) => {
+            bcrypt.hash(user.password, 10, (err, hash) => {
+              if (err) {
+                console.error("Error hashing password:", err);
+                reject(err);
+              } else {
+                db.run(
+                  "INSERT INTO users (username, password, requirePasswordChange) VALUES (?, ?, ?)",
+                  [user.username, hash, user.requirePasswordChange],
+                  (err) => {
+                    if (err) {
+                      console.error(
+                        `Error inserting user ${user.username}:`,
+                        err,
+                      );
+                      reject(err);
+                    } else {
+                      console.log(`User ${user.username} initialized`);
+                      resolve();
+                    }
+                  },
+                );
+              }
+            });
+          });
+        }
+        return Promise.resolve();
+      });
+
+      Promise.all(promises).then(resolve).catch(reject);
+    });
+  });
+}
+
 exports.handler = async (event) => {
   console.log("Login function invoked");
   console.log("HTTP Method:", event.httpMethod);
   console.log("Request body:", event.body);
+
   if (event.httpMethod !== "POST") {
     console.log("Invalid HTTP method:", event.httpMethod);
     return {
@@ -11,9 +112,6 @@ exports.handler = async (event) => {
   }
 
   try {
-    const { username, password } = JSON.parse(event.body);
-    console.log("Login attempt for username:", username);
-
     if (!databaseInitialized) {
       try {
         await initializeDatabase();
@@ -30,6 +128,9 @@ exports.handler = async (event) => {
         };
       }
     }
+
+    const { username, password } = JSON.parse(event.body);
+    console.log("Login attempt for username:", username);
 
     return new Promise((resolve) => {
       db.get(
@@ -105,6 +206,7 @@ exports.handler = async (event) => {
       body: JSON.stringify({
         error: "Unexpected server error",
         details: error.message,
+        stack: error.stack,
       }),
     };
   }
