@@ -10,11 +10,6 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "bcrypt": "^5.1.1",
-    "cors": "^2.8.5",
-    "express": "^4.21.0",
-    "express-session": "^1.18.0",
-    "sqlite3": "^5.1.7",
-    "fs": "^0.0.1-security"
+  }
   }
 }
