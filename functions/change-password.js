@@ -22,6 +22,20 @@ function initializeDatabase() {
 exports.handler = async (event) => {
   console.log("Change password function invoked");
   console.log("HTTP Method:", event.httpMethod);
+  console.log("Event body:", event.body);
+
+  return {
+    statusCode: 200,
+    body: JSON.stringify({
+      message: "Change password function reached",
+      event: {
+        httpMethod: event.httpMethod,
+        body: event.body
+      }
+    })
+  };
+  console.log("Change password function invoked");
+  console.log("HTTP Method:", event.httpMethod);
   console.log("Request body:", event.body);
 
   if (event.httpMethod !== "POST") {

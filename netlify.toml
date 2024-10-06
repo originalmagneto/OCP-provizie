@@ -1,16 +1,11 @@
 [build]
   publish = "."
   functions = "functions"
-  command = "npm install"
+  command = "npm install && ls -la functions"
 
 [[redirects]]
   from = "/*"
   to = "/login.html"
-  status = 200
-
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
   status = 200
 
 [[redirects]]
