@@ -3,6 +3,9 @@
   functions = "functions"
   command = "npm install && ls -la functions"
 
+[functions]
+  node_bundler = "esbuild"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
