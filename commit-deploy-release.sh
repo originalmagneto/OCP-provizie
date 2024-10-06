@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Set Netlify deploy hook URL
+NETLIFY_DEPLOY_HOOK="https://api.netlify.com/build_hooks/67023edfe04bcafc52857cab"
+
 # Exit immediately if a command exits with a non-zero status
 set -e
 # Function to increment version
