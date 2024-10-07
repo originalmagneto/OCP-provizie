@@ -6,6 +6,47 @@ document.addEventListener("DOMContentLoaded", () => {
     "changePasswordContainer",
   );
 
+  loginForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+
+    try {
+      const response = await fetch(`${config.API_BASE_URL}/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        console.log(`Login successful for user: ${username}`);
+        if (data.requirePasswordChange) {
+          loginContainer.style.display = "none";
+          changePasswordContainer.style.display = "block";
+        } else {
+          localStorage.setItem("currentUser", username);
+          window.location.href = "index.html";
+        }
+      } else {
+        console.log(`Login failed for user: ${username}`);
+        alert(data.message || "Invalid username or password");
+      }
+    } catch (error) {
+      console.error("Error during login:", error);
+      alert("An error occurred during login. Please try again.");
+    }
+  });
+  const loginForm = document.getElementById("loginForm");
+  const changePasswordForm = document.getElementById("changePasswordForm");
+  const loginContainer = document.getElementById("loginContainer");
+  const changePasswordContainer = document.getElementById(
+    "changePasswordContainer",
+  );
+
   // Mock user data (replace this with actual authentication in production)
   const users = {
     AdvokatiCHZ: {
