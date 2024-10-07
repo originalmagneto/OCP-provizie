@@ -163,6 +163,70 @@ app.post("/login", (req, res) => {
     }
     if (!user) {
       console.log("User not found:", username);
+      return res.json({ success: false, message: "Invalid username or password" });
+    }
+    bcrypt.compare(password, user.password, (err, result) => {
+      if (err) {
+        console.error("Password comparison error:", err);
+        return res.status(500).json({ success: false, message: "Server error" });
+      }
+      if (result) {
+        console.log("Successful login:", username);
+        res.json({
+          success: true,
+          requirePasswordChange: user.requirePasswordChange === 1,
+        });
+      } else {
+        console.log("Invalid password for user:", username);
+        res.json({ success: false, message: "Invalid username or password" });
+      }
+    });
+  });
+});
+  const { username, password } = req.body;
+  console.log("Login attempt:", username);
+
+  db.get("SELECT * FROM users WHERE username = ?", [username], (err, user) => {
+    if (err) {
+      console.error("Database error:", err);
+      return res.status(500).json({ success: false, message: "Server error" });
+    }
+    if (!user) {
+      console.log("User not found:", username);
+      return res.json({
+        success: false,
+        message: "Invalid username or password",
+      });
+    }
+    bcrypt.compare(password, user.password, (err, result) => {
+      if (err) {
+        console.error("Password comparison error:", err);
+        return res
+          .status(500)
+          .json({ success: false, message: "Server error" });
+      }
+      if (result) {
+        console.log("Successful login:", username);
+        res.json({
+          success: true,
+          requirePasswordChange: user.requirePasswordChange === 1,
+        });
+      } else {
+        console.log("Invalid password for user:", username);
+        res.json({ success: false, message: "Invalid username or password" });
+      }
+    });
+  });
+  const { username, password } = req.body;
+  console.log("Login attempt:", username);
+
+  db.get("SELECT * FROM users WHERE username = ?", [username], (err, user) => {
+    if (err) {
+      console.error("Database error:", err);
+      return res.status(500).json({ success: false, message: "Server error" });
+    }
+    if (!user) {
+      console.log("User not found:", username);
       return res.json({ success: false, message: "User not found" });
     }
     bcrypt.compare(password, user.password, (err, result) => {

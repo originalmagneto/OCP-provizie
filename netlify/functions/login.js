@@ -1,26 +1,86 @@
-exports.handler = async function (event, context) {
+let bcrypt;
+try {
+  console.log("Attempting to import bcrypt module...");
+  bcrypt = require("bcrypt");
+  console.log("bcrypt module imported successfully");
+} catch (error) {
+  console.error("Failed to import bcrypt:", error.message);
+  console.error("Error stack:", error.stack);
+  console.error("Node.js version:", process.version);
+  console.error("Please check if bcrypt is installed correctly and compatible with the current Node.js version.");
+  throw new Error("bcrypt module import failed");
+}
+  console.log("bcrypt module imported successfully");
+} catch (error) {
+  console.error("Failed to import bcrypt:", error.message);
+  console.error("Please check if bcrypt is installed correctly.");
+  throw new Error("bcrypt module not found");
+}
+
+// Add error handling for bcrypt import
+if (!bcrypt) {
+  console.error(
+    "Failed to import bcrypt. Please check if it's installed correctly.",
+  );
+  throw new Error("bcrypt module not found");
+}
+
+// Add logging for successful import
+console.log("bcrypt module imported successfully");
+
+// Mock user data (replace this with your actual user authentication logic)
+const users = {
+  AdvokatiCHZ: {
+    password: "$2b$10$X4kv7j5ZcG1pFV5sNvi6OeYoFrW9a6.rmA9X3uCNq3QhUCSrHAQTi",
+    requirePasswordChange: false,
+  },
+  MKMs: {
+    password: "$2b$10$X4kv7j5ZcG1pFV5sNvi6OeYoFrW9a6.rmA9X3uCNq3QhUCSrHAQTi",
+    requirePasswordChange: false,
+  },
+  Contax: {
+    password: "$2b$10$X4kv7j5ZcG1pFV5sNvi6OeYoFrW9a6.rmA9X3uCNq3QhUCSrHAQTi",
+    requirePasswordChange: false,
+  },
+};
+
+exports.handler = async function (event) {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: "Method Not Allowed" };
   }
 
-  const { username, password } = JSON.parse(event.body);
-  console.log("Attempting login for user:", username);
-
   try {
-    // Here you would typically validate the username and password against your database
-    // For this example, we'll use a mock authentication
-    if (username === "admin" && password === "password") {
-      console.log("Login successful for user:", username);
+    const { username, password } = JSON.parse(event.body);
+
+    console.log(`Login attempt for user: ${username}`);
+
+    if (!users[username]) {
+      console.log(`User not found: ${username}`);
+      return {
+        statusCode: 401,
+        body: JSON.stringify({
+          success: false,
+          message: "Invalid username or password",
+        }),
+      };
+    }
+
+    const isPasswordValid = await bcrypt.compare(
+      password,
+      users[username].password,
+    );
+
+    if (isPasswordValid) {
+      console.log(`Login successful for user: ${username}`);
       return {
         statusCode: 200,
         body: JSON.stringify({
           success: true,
-          message: "Login successful",
-          requirePasswordChange: false,
+          requirePasswordChange: users[username].requirePasswordChange,
         }),
       };
     } else {
-      console.warn("Login failed for user:", username);
+      console.log(`Invalid password for user: ${username}`);
       return {
         statusCode: 401,
         body: JSON.stringify({
@@ -41,35 +101,73 @@ exports.handler = async function (event, context) {
   }
 };
 
-document
-  .getElementById("loginForm")
-  .addEventListener("submit", async function (e) {
-    e.preventDefault();
-    const username = document.getElementById("username").value;
-    const password = document.getElementById("password").value;
-    console.log("Attempting login for user:", username);
+// Mock user data (replace this with your actual user authentication logic)
+const users = {
+  AdvokatiCHZ: {
+    password: "$2b$10$X4kv7j5ZcG1pFV5sNvi6OeYoFrW9a6.rmA9X3uCNq3QhUCSrHAQTi",
+    requirePasswordChange: false,
+  },
+  MKMs: {
+    password: "$2b$10$X4kv7j5ZcG1pFV5sNvi6OeYoFrW9a6.rmA9X3uCNq3QhUCSrHAQTi",
+    requirePasswordChange: false,
+  },
+  Contax: {
+    password: "$2b$10$X4kv7j5ZcG1pFV5sNvi6OeYoFrW9a6.rmA9X3uCNq3QhUCSrHAQTi",
+    requirePasswordChange: false,
+  },
+};
 
-    try {
-      const response = await fetch("/.netlify/functions/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ username, password }),
-      });
+exports.handler = async function (event) {
+  if (event.httpMethod !== "POST") {
+    return { statusCode: 405, body: "Method Not Allowed" };
+  }
 
-      const data = await response.json();
+  try {
+    const { username, password } = JSON.parse(event.body);
 
-      if (data.success) {
-        console.log("Login successful for user:", username);
-        localStorage.setItem("currentUser", username);
-        window.location.href = "index.html";
-      } else {
-        console.warn("Login failed. Reason:", data.message);
-        alert(data.message || "Invalid username or password");
-      }
-    } catch (error) {
-      console.error("Login error:", error);
-      alert("An error occurred during login. Please try again.");
+    console.log(`Login attempt for user: ${username}`);
+
+    if (!users[username]) {
+      console.log(`User not found: ${username}`);
+      return {
+        statusCode: 401,
+        body: JSON.stringify({
+          success: false,
+          message: "Invalid username or password",
+        }),
+      };
     }
-  });
+
+    // Simple password comparison (not secure, for demonstration only)
+    const isPasswordValid = password === "password123";
+
+    if (isPasswordValid) {
+      console.log(`Login successful for user: ${username}`);
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          success: true,
+          requirePasswordChange: users[username].requirePasswordChange,
+        }),
+      };
+    } else {
+      console.log(`Invalid password for user: ${username}`);
+      return {
+        statusCode: 401,
+        body: JSON.stringify({
+          success: false,
+          message: "Invalid username or password",
+        }),
+      };
+    }
+  } catch (error) {
+    console.error("Login error:", error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        success: false,
+        message: "An error occurred during login",
+      }),
+    };
+  }
+};
