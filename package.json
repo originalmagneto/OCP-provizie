@@ -5,6 +5,8 @@
     "build": "npm install"
   },
   "dependencies": {
+    "express": "^4.17.1",
+    "serverless-http": "^2.7.0",
     "bcrypt": "^5.0.1"
   }
 }
