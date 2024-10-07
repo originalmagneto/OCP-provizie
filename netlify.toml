@@ -1,5 +1,5 @@
 [build]
-  command = "npm run build"
+  command = "chmod +x build.sh && ./build.sh"
   publish = "."
   functions = "netlify/functions"
 
@@ -7,3 +7,6 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+[build.environment]
+  NODE_VERSION = "14"
