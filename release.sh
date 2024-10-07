@@ -10,6 +10,172 @@ increment_version() {
     echo "${ADDR[0]}.${ADDR[1]}.${ADDR[2]}"
 }
 
+# Function to generate changelog
+generate_changelog() {
+    local since_tag=$1
+    local changes=$(git log ${since_tag}..HEAD --pretty=format:"%h - %s (%an)")
+    local changelog=""
+
+    while IFS= read -r line; do
+        cleaned_line=$(echo "$line" | sed -E 's/^[a-f0-9]+ - (\[?[A-Z]+-[0-9]+\]?:?|fix:|feat:|refactor:|chore:|docs:)//' | sed 's/^ *//')
+        cleaned_line="$(tr '[:lower:]' '[:upper:]' <<< ${cleaned_line:0:1})${cleaned_line:1}"
+        changelog+="- $cleaned_line\n"
+    done <<< "$changes"
+
+    echo -e "$changelog"
+}
+
+# Ensure we're on the main branch
+git checkout main
+
+# Pull the latest changes
+git pull origin main
+
+# Fetch all tags
+git fetch --tags
+
+# Get the latest tag
+LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+
+# Remove 'v' prefix for version calculation
+VERSION_NUMBER=${LATEST_TAG#v}
+NEW_VERSION="v$(increment_version $VERSION_NUMBER)"
+
+echo "Preparing release $NEW_VERSION"
+
+CHANGELOG=$(generate_changelog $LATEST_TAG)
+
+# Check if there are any changes to commit
+if [[ -z "$CHANGELOG" ]]; then
+    echo "No changes detected since last release. Skipping release process."
+    exit 0
+fi
+
+# Update package.json version
+npm version $NEW_VERSION --no-git-tag-version
+
+# Stage all changes, including package.json
+git add .
+
+# Create a new tag and commit with the changelog
+git commit -m "Release $NEW_VERSION
+
+$CHANGELOG"
+
+git tag -a $NEW_VERSION -m "Release $NEW_VERSION
+
+$CHANGELOG"
+
+# Push commit and tag to GitHub
+git push origin main --tags
+
+# Create GitHub release
+gh release create $NEW_VERSION --title "Release $NEW_VERSION" --notes "$CHANGELOG" --target main
+
+echo "Release $NEW_VERSION has been created and pushed to GitHub"
+
+echo "Release process completed successfully!"
+exit 0
+
+# Prevent additional commit for version bump
+VERSION_BUMP_COMMIT=false
+
+
+# Prevent additional commit for version bump
+VERSION_BUMP_COMMIT=false
+
+set -e
+
+# Function to increment version
+increment_version() {
+    local version=$1
+    IFS='.' read -ra ADDR <<< "$version"
+    ADDR[2]=$((ADDR[2]+1))
+    echo "${ADDR[0]}.${ADDR[1]}.${ADDR[2]}"
+}
+
+# Function to generate changelog
+generate_changelog() {
+    local since_tag=$1
+    local changes=$(git log ${since_tag}..HEAD --pretty=format:"%h - %s (%an)")
+    local changelog=""
+
+    while IFS= read -r line; do
+        cleaned_line=$(echo "$line" | sed -E 's/^[a-f0-9]+ - (\[?[A-Z]+-[0-9]+\]?:?|fix:|feat:|refactor:|chore:|docs:)//' | sed 's/^ *//')
+        cleaned_line="$(tr '[:lower:]' '[:upper:]' <<< ${cleaned_line:0:1})${cleaned_line:1}"
+        changelog+="- $cleaned_line\n"
+    done <<< "$changes"
+
+    echo -e "$changelog"
+}
+
+# Error handling function
+handle_error() {
+    echo "Error: $1" >&2
+    exit 1
+}
+
+# Ensure we're on the main branch and up to date
+git checkout main
+git pull origin main
+
+# Fetch all tags
+git fetch --tags
+
+# Get the latest tag and prepare new version
+LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+VERSION_NUMBER=${LATEST_TAG#v}
+NEW_VERSION="v$(increment_version $VERSION_NUMBER)"
+
+# Ensure unique version
+while git rev-parse $NEW_VERSION >/dev/null 2>&1; do
+    VERSION_NUMBER=${NEW_VERSION#v}
+    NEW_VERSION="v$(increment_version $VERSION_NUMBER)"
+done
+
+echo "Preparing release $NEW_VERSION"
+
+# Generate changelog
+CHANGELOG=$(generate_changelog $LATEST_TAG)
+
+# Exit if no changes
+if [[ -z "$CHANGELOG" ]]; then
+    echo "No changes detected since last release. Skipping release process."
+    exit 0
+fi
+
+# Update package.json version
+npm version $NEW_VERSION --no-git-tag-version
+
+# Stage all changes, including package.json
+git add .
+
+# Commit changes with changelog
+git commit -m "Release $NEW_VERSION
+
+$CHANGELOG"
+
+# Create and push tag
+git tag -a $NEW_VERSION -m "Release $NEW_VERSION
+
+$CHANGELOG"
+git push origin main --tags
+
+# Create GitHub release
+gh release create $NEW_VERSION --title "Release $NEW_VERSION" --notes "$CHANGELOG" --target main
+
+echo "Release $NEW_VERSION has been created and pushed to GitHub"
+
+set -e
+
+# Function to increment version
+increment_version() {
+    local version=$1
+    IFS='.' read -ra ADDR <<< "$version"
+    ADDR[2]=$((ADDR[2]+1))
+    echo "${ADDR[0]}.${ADDR[1]}.${ADDR[2]}"
+}
+
 # Ensure we're on the main branch
 git checkout main
 

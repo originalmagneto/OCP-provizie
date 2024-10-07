@@ -2,7 +2,7 @@
 // fetch(`${config.API_BASE_URL}/get-invoices`)
 
 const config = {
-  API_BASE_URL: "https://ocp-provizie-final.onrender.com",
+  API_BASE_URL: "https://ocp-provizie.netlify.app",
 };
 
 // Initialize global variables
@@ -11,9 +11,8 @@ let clientNames = [];
 let quarterlyBonusPaidStatus = {};
 const currentUser = localStorage.getItem("currentUser");
 
-// Make updateQuarterStatus globally accessible
+// Make functions globally accessible
 window.updateQuarterStatus = updateQuarterStatus;
-
 window.deleteInvoice = deleteInvoice;
 window.editInvoice = editInvoice;
 window.updatePaidStatus = updatePaidStatus;
@@ -31,7 +30,7 @@ function setCurrentUserDisplay() {
         backgroundColor = "black";
         break;
       case "Contax":
-        backgroundColor = "yellow";
+        backgroundColor = "#D4AF37"; // Updated Contax color
         break;
       default:
         backgroundColor = "gray";
@@ -163,9 +162,17 @@ async function fetchQuarterlyBonusPaidStatus() {
 // Function to handle form submission
 async function handleFormSubmit(event) {
   event.preventDefault();
-  console.log("Form submitted");
+  const form = event.target;
 
-  const newInvoice = {
+  // Check if we're in edit mode
+  const isEditMode = form.getAttribute("data-edit-mode") === "true";
+  const invoiceId = form.getAttribute("data-edit-invoice-id");
+
+  console.log(
+    isEditMode ? "Updating existing invoice" : "Creating new invoice",
+  );
+
+  const invoiceData = {
     year: parseInt(document.getElementById("year").value),
     month: parseInt(document.getElementById("month").value),
     clientName: document.getElementById("client-name").value.trim(),
@@ -178,13 +185,13 @@ async function handleFormSubmit(event) {
     createdBy: currentUser,
   };
 
-  console.log("New invoice:", newInvoice);
+  console.log("Invoice data:", invoiceData);
 
   if (
-    isNaN(newInvoice.year) ||
-    isNaN(newInvoice.month) ||
-    isNaN(newInvoice.amount) ||
-    isNaN(newInvoice.bonusPercentage)
+    isNaN(invoiceData.year) ||
+    isNaN(invoiceData.month) ||
+    isNaN(invoiceData.amount) ||
+    isNaN(invoiceData.bonusPercentage)
   ) {
     console.error("Invalid input values");
     alert("Please fill in all fields with valid values.");
@@ -192,13 +199,27 @@ async function handleFormSubmit(event) {
   }
 
   try {
-    const response = await fetch(`${config.API_BASE_URL}/save-invoice`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(newInvoice),
-    });
+    let response;
+    if (isEditMode) {
+      response = await fetch(
+        `${config.API_BASE_URL}/update-invoice/${invoiceId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ ...invoiceData, currentUser }),
+        },
+      );
+    } else {
+      response = await fetch(`${config.API_BASE_URL}/save-invoice`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(invoiceData),
+      });
+    }
 
     if (!response.ok) {
       const errorData = await response.json();
@@ -209,38 +230,58 @@ async function handleFormSubmit(event) {
 
     const data = await response.json();
 
-    if (newInvoice.clientName && !clientNames.includes(newInvoice.clientName)) {
-      const clientResponse = await fetch(
-        `${config.API_BASE_URL}/save-client-name`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ clientName: newInvoice.clientName }),
+    if (
+      invoiceData.clientName &&
+      !clientNames.includes(invoiceData.clientName)
+    ) {
+      await fetch(`${config.API_BASE_URL}/save-client-name`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
-
-      if (!clientResponse.ok) {
-        throw new Error("Failed to save client name");
-      }
+        body: JSON.stringify({ clientName: invoiceData.clientName }),
+      });
     }
 
     await fetchInvoices();
     await fetchClientNames();
 
-    const form = event.target;
-    const yearValue = form.querySelector("#year").value;
-    const monthValue = form.querySelector("#month").value;
-    form.reset();
-    form.querySelector("#year").value = yearValue;
-    form.querySelector("#month").value = monthValue;
+    // Reset form and button
+    resetForm(form);
 
-    console.log("Form reset (except year and month)");
+    console.log(
+      isEditMode
+        ? "Invoice updated successfully"
+        : "New invoice added successfully",
+    );
+    alert(
+      isEditMode
+        ? "Invoice updated successfully"
+        : "New invoice added successfully",
+    );
   } catch (error) {
-    console.error("Error saving data:", error);
-    alert(`An error occurred while saving the invoice: ${error.message}`);
+    console.error("Error saving/updating data:", error);
+    alert(
+      `An error occurred while ${isEditMode ? "updating" : "saving"} the invoice: ${error.message}`,
+    );
   }
+}
+
+function resetForm(form) {
+  form.reset();
+  form.removeAttribute("data-edit-mode");
+  form.removeAttribute("data-edit-invoice-id");
+
+  // Reset the submit button to "Add Invoice"
+  const submitButton = form.querySelector('button[type="submit"]');
+  submitButton.textContent = "Add Invoice";
+  submitButton.classList.remove("btn-warning");
+  submitButton.classList.add("btn-primary");
+
+  // Set default year and month
+  const currentDate = new Date();
+  document.getElementById("year").value = currentDate.getFullYear();
+  document.getElementById("month").value = currentDate.getMonth() + 1;
 }
 
 // Function to render the invoice list
@@ -252,35 +293,39 @@ function renderInvoiceList() {
     return;
   }
 
+  // Sort invoices in descending order (newest first)
+  invoices.sort((a, b) => b.id - a.id);
+
   tbody.innerHTML = "";
   invoices.forEach((invoice) => {
     const tr = document.createElement("tr");
     tr.setAttribute("data-id", invoice.id);
     tr.style.textDecoration = invoice.paid ? "line-through" : "none";
+    tr.style.color = invoice.paid ? "green" : "";
     const isEditable = invoice.createdBy === currentUser;
     tr.innerHTML = `
-            <td>${invoice.year}</td>
-            <td>${invoice.month}</td>
-            <td>${invoice.clientName}</td>
-            <td>€${invoice.amount.toFixed(2)}</td>
-            <td>${invoice.referrer}</td>
-            <td>${(invoice.bonusPercentage * 100).toFixed(0)}%</td>
-            <td>
-                <input type="checkbox" class="paid-status-checkbox" ${invoice.paid ? "checked" : ""}
-                       data-id="${invoice.id}"
-                       ${isEditable ? "" : "disabled"}>
-            </td>
-            <td>
-                ${
-                  isEditable
-                    ? `
-                    <button class="edit-invoice" data-id="${invoice.id}">Edit</button>
-                    <button class="delete-invoice" data-id="${invoice.id}">Delete</button>
-                `
-                    : ""
-                }
-            </td>
-        `;
+      <td>${invoice.year}</td>
+      <td>${invoice.month}</td>
+      <td>${invoice.clientName}</td>
+      <td>€${invoice.amount.toFixed(2)}</td>
+      <td>${invoice.referrer}</td>
+      <td>${(invoice.bonusPercentage * 100).toFixed(0)}%</td>
+      <td>
+        <input type="checkbox" class="paid-status-checkbox" ${invoice.paid ? "checked" : ""}
+               data-id="${invoice.id}"
+               ${isEditable ? "" : "disabled"}>
+      </td>
+      <td>
+        ${
+          isEditable
+            ? `
+          <button class="edit-invoice btn btn-sm btn-primary" data-id="${invoice.id}">Edit</button>
+          <button class="delete-invoice btn btn-sm btn-danger" data-id="${invoice.id}">Delete</button>
+        `
+            : ""
+        }
+      </td>
+    `;
     tbody.appendChild(tr);
   });
 
@@ -350,54 +395,50 @@ function createReferrerTable(referrer) {
   const isAuthorized = referrer === currentUser;
 
   let tableHTML = `
-        <thead>
-            <tr>
-                <th colspan="5" class="referrer-header" style="background-color: ${referrerColor}; color: white;">${referrer}</th>
-            </tr>
-            <tr>
-                <th>Year</th>
-                ${[1, 2, 3, 4]
-                  .map(
-                    (quarter) => `
-                    <th class="quarter-header">
-                        Q${quarter}
-                        <input type="checkbox" class="paid-checkbox" data-quarter="${quarter}" data-referrer="${referrer}" ${isAuthorized ? "" : "disabled"}>
-                    </th>
-                `,
-                  )
-                  .join("")}
-            </tr>
-        </thead>
-        <tbody>
-    `;
+    <thead>
+      <tr>
+        <th colspan="5" class="referrer-header" style="background-color: ${referrerColor}; color: white;">${referrer}</th>
+      </tr>
+      <tr>
+        <th>Year</th>
+        ${[1, 2, 3, 4]
+          .map(
+            (quarter) => `
+          <th class="quarter-header">
+            Q${quarter}
+            <input type="checkbox" class="paid-checkbox" data-quarter="${quarter}" data-referrer="${referrer}" ${isAuthorized ? "" : "disabled"}>
+          </th>
+        `,
+          )
+          .join("")}
+      </tr>
+    </thead>
+    <tbody>
+  `;
 
   years.forEach((year) => {
     tableHTML += `
-            <tr data-year="${year}">
-                <td>${year}</td>
-                ${[1, 2, 3, 4]
-                  .map((quarter) => {
-                    const quarterlyBonus = calculateQuarterlyBonus(
-                      referrerInvoices,
-                      year,
-                      quarter,
-                    );
-                    const isPaid = getQuarterlyBonusPaidStatus(
-                      referrer,
-                      year,
-                      quarter,
-                    );
-                    return `
-                        <td>
-                            <span class="quarter-amount ${isPaid ? "paid" : "unpaid"}" data-year="${year}" data-quarter="${quarter}">
-                                €${quarterlyBonus.toFixed(2)}
-                            </span>
-                        </td>
-                    `;
-                  })
-                  .join("")}
-            </tr>
-        `;
+      <tr data-year="${year}">
+        <td>${year}</td>
+        ${[1, 2, 3, 4]
+          .map((quarter) => {
+            const quarterlyBonus = calculateQuarterlyBonus(
+              referrerInvoices,
+              year,
+              quarter,
+            );
+            const isPaid = getQuarterlyBonusPaidStatus(referrer, year, quarter);
+            return `
+            <td>
+              <span class="quarter-amount ${isPaid ? "paid" : "unpaid"}" data-year="${year}" data-quarter="${quarter}">
+                €${quarterlyBonus.toFixed(2)}
+              </span>
+            </td>
+          `;
+          })
+          .join("")}
+      </tr>
+    `;
   });
 
   tableHTML += "</tbody>";
@@ -490,7 +531,7 @@ function calculateQuarterlyBonus(invoices, year, quarter) {
 }
 
 async function editInvoice(id) {
-  const invoice = invoices.find((inv) => inv.id === id);
+  const invoice = invoices.find((inv) => inv.id === parseInt(id));
   if (!invoice) return;
 
   // Populate form with invoice data for editing
@@ -501,52 +542,19 @@ async function editInvoice(id) {
   document.getElementById("referral-bonus").value = invoice.bonusPercentage;
   document.getElementById("paid-status").checked = invoice.paid;
 
-  // Change form submission to update instead of create
+  // Add data attributes to the form to indicate we're in edit mode
   const form = document.getElementById("invoice-form");
-  form.onsubmit = (e) => updateInvoice(e, id);
-}
+  form.setAttribute("data-edit-mode", "true");
+  form.setAttribute("data-edit-invoice-id", id);
 
-async function updateInvoice(event, id) {
-  event.preventDefault();
-  const updatedInvoice = {
-    year: parseInt(document.getElementById("year").value),
-    month: parseInt(document.getElementById("month").value),
-    clientName: document.getElementById("client-name").value.trim(),
-    amount: parseFloat(document.getElementById("invoice-amount").value),
-    referrer: currentUser,
-    bonusPercentage: parseFloat(
-      document.getElementById("referral-bonus").value,
-    ),
-    paid: document.getElementById("paid-status").checked,
-    createdBy: currentUser,
-  };
+  // Change the submit button to an "Update Invoice" button
+  const submitButton = form.querySelector('button[type="submit"]');
+  submitButton.textContent = "Update Invoice";
+  submitButton.classList.remove("btn-primary");
+  submitButton.classList.add("btn-warning");
 
-  try {
-    const response = await fetch(
-      `${config.API_BASE_URL}/update-invoice/${id}`,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ ...updatedInvoice, currentUser }),
-      },
-    );
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || "Failed to update invoice");
-    }
-
-    await fetchInvoices();
-    // Reset form to create mode
-    const form = document.getElementById("invoice-form");
-    form.onsubmit = handleFormSubmit;
-    form.reset();
-  } catch (error) {
-    console.error("Error updating invoice:", error);
-    alert(`Failed to update invoice: ${error.message}`);
-  }
+  // Scroll to the form
+  form.scrollIntoView({ behavior: "smooth" });
 }
 
 async function deleteInvoice(id) {
@@ -620,8 +628,6 @@ async function updateQuarterlyBonusPaidStatus(referrer, year, quarter, isPaid) {
   }
 }
 
-// This function is a duplicate and has been removed as per the prompt.
-
 // Function to update paid status of an invoice
 async function updatePaidStatus(id, paid) {
   console.log(`Updating paid status for invoice ${id} to ${paid}`);
@@ -645,10 +651,10 @@ async function updatePaidStatus(id, paid) {
     const data = await response.json();
 
     if (data.success) {
-      const invoice = invoices.find((inv) => inv.id === id);
+      const invoice = invoices.find((inv) => inv.id === parseInt(id));
       if (invoice) {
         invoice.paid = paid;
-        renderInvoiceList();
+        updateInvoiceRowAppearance(id, paid);
         renderSummaryTables();
       }
     } else {
@@ -657,6 +663,14 @@ async function updatePaidStatus(id, paid) {
   } catch (error) {
     console.error("Error updating invoice paid status:", error);
     alert(`Failed to update invoice paid status: ${error.message}`);
+  }
+}
+
+function updateInvoiceRowAppearance(id, paid) {
+  const row = document.querySelector(`tr[data-id="${id}"]`);
+  if (row) {
+    row.style.textDecoration = paid ? "line-through" : "none";
+    row.style.color = paid ? "green" : "";
   }
 }
 
@@ -676,25 +690,3 @@ function updateClientNameSuggestions() {
   });
   console.log("Client suggestions updated:", clientNames);
 }
-
-// Event listeners
-document.addEventListener("DOMContentLoaded", function () {
-  if (!currentUser) {
-    window.location.href = "login.html";
-  } else {
-    init();
-  }
-});
-
-document.getElementById("logoutBtn").addEventListener("click", function () {
-  localStorage.removeItem("currentUser");
-  window.location.href = "login.html";
-});
-
-document
-  .getElementById("changePasswordBtn")
-  .addEventListener("click", function () {
-    localStorage.setItem("changePassword", "true");
-    localStorage.removeItem("currentUser");
-    window.location.href = "login.html";
-  });
