@@ -2,6 +2,13 @@ const config = {
   API_BASE_URL: "https://ocp-provizie.netlify.app", // Update this with your actual API URL
 };
 
+// Add the config object if it doesn't exist
+if (typeof config === "undefined") {
+  const config = {
+    API_BASE_URL: "https://ocp-provizie.netlify.app", // Update this with your actual API URL
+  };
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const loginForm = document.getElementById("loginForm");
   if (loginForm) {
