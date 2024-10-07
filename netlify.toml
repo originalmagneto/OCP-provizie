@@ -1,6 +1,6 @@
 [build]
-  command = "chmod +x build.sh && ./build.sh"
-  publish = "."
+  command = "npm install && npm run build"
+  publish = "public"
   functions = "netlify/functions"
 
 [[redirects]]
