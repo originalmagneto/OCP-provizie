@@ -27,9 +27,5 @@
   directory = "netlify/functions"
   included_files = ["netlify/functions/**/*.js"]
   node_bundler = "esbuild"
-
-[[plugins]]
-  package = "@netlify/plugin-functions-core"
-  from = "/*"
   to = "/_redirects"
   status = 200
