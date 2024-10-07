@@ -23,3 +23,8 @@
 
 [build.environment]
   NODE_VERSION = "14"
+
+[[redirects]]
+  from = "/*"
+  to = "/_redirects"
+  status = 200
