@@ -1,9 +1,10 @@
 {
   "name": "ocp-provizie-v3",
   "scripts": {
-    "build": "npm install",
+    "build": "npm install && npm run build:functions",
     "start": "node server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build:functions": "netlify-lambda build netlify/functions"
   },
   "version": "0.0.369",
   "main": "server.js",
