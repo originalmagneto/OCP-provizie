@@ -44,8 +44,53 @@ const users = {
   },
 };
 
-exports.handler = async function (event) {
+exports.handler = async function (event, context) {
+  console.log("Function invoked");
+  console.log("Event:", JSON.stringify(event, null, 2));
+
   if (event.httpMethod !== "POST") {
+    console.log("Method not allowed");
+    return { statusCode: 405, body: JSON.stringify({ message: "Method Not Allowed" }) };
+  }
+
+  try {
+    console.log("Parsing request body");
+    const { username, password } = JSON.parse(event.body);
+
+    console.log(`Login attempt for user: ${username}`);
+
+    // Simplified authentication (replace with actual logic later)
+    if (username === "test" && password === "password") {
+      console.log(`Login successful for user: ${username}`);
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          success: true,
+          requirePasswordChange: false,
+        }),
+      };
+    } else {
+      console.log(`Invalid credentials for user: ${username}`);
+      return {
+        statusCode: 401,
+        body: JSON.stringify({
+          success: false,
+          message: "Invalid username or password",
+        }),
+      };
+    }
+  } catch (error) {
+    console.error("Login error:", error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        success: false,
+        message: "An error occurred during login",
+        error: error.toString(),
+      }),
+    };
+  }
+};
     return { statusCode: 405, body: "Method Not Allowed" };
   }
 

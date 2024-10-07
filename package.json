@@ -1,4 +1,12 @@
 {
+  "name": "ocp-provizie",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "npm install"
+  },
+  "dependencies": {
+    "bcrypt": "^5.0.1"
+  }
   "name": "ocp-provizie-v3",
   "scripts": {
     "build": "npm install && npm run build:functions",
