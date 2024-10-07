@@ -22,10 +22,5 @@
 
 [build.environment]
   NODE_VERSION = "14"
-
-[functions]
-  directory = "netlify/functions"
-  included_files = ["netlify/functions/**/*.js"]
-  node_bundler = "esbuild"
   to = "/_redirects"
   status = 200
