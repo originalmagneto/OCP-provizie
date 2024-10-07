@@ -24,6 +24,9 @@
 [build.environment]
   NODE_VERSION = "14"
 
+[functions]
+  directory = "netlify/functions"
+
 [[redirects]]
   from = "/*"
   to = "/_redirects"

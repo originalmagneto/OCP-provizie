@@ -157,11 +157,14 @@
                 }
 
                 try {
-                    const response = await fetch("/change-password", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ username, newPassword }),
-                    });
+                    const response = await fetch(
+                        "/.netlify/functions/api/change-password",
+                        {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ username, newPassword }),
+                        },
+                    );
 
                     const data = await response.json();
 
