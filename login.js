@@ -1,69 +1,74 @@
-// Login functionality for Netlify deployment
+const bcrypt = require("bcrypt");
 
-async function loginNetlify(username, password) {
-  console.log("Attempting login for user:", username);
+// Mock user data (replace this with your actual user authentication logic)
+const users = {
+  AdvokatiCHZ: {
+    password: "$2b$10$X4kv7j5ZcG1pFV5sNvi6OeYoFrW9a6.rmA9X3uCNq3QhUCSrHAQTi",
+    requirePasswordChange: false,
+  },
+  MKMs: {
+    password: "$2b$10$X4kv7j5ZcG1pFV5sNvi6OeYoFrW9a6.rmA9X3uCNq3QhUCSrHAQTi",
+    requirePasswordChange: false,
+  },
+  Contax: {
+    password: "$2b$10$X4kv7j5ZcG1pFV5sNvi6OeYoFrW9a6.rmA9X3uCNq3QhUCSrHAQTi",
+    requirePasswordChange: false,
+  },
+};
+
+exports.handler = async function (event, context) {
+  if (event.httpMethod !== "POST") {
+    return { statusCode: 405, body: "Method Not Allowed" };
+  }
+
   try {
-    const response = await fetch("/.netlify/functions/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ username, password }),
-    });
+    const { username, password } = JSON.parse(event.body);
 
-    console.log("Login response status:", response.status);
+    console.log(`Login attempt for user: ${username}`);
 
-    const responseText = await response.text();
-    console.log("Full response text:", responseText);
-
-    let data;
-    try {
-      data = JSON.parse(responseText);
-    } catch (parseError) {
-      console.error("Error parsing response:", parseError);
-      throw new Error(`Failed to parse response: ${responseText}`);
+    if (!users[username]) {
+      console.log(`User not found: ${username}`);
+      return {
+        statusCode: 401,
+        body: JSON.stringify({
+          success: false,
+          message: "Invalid username or password",
+        }),
+      };
     }
 
-    console.log("Parsed login response data:", data);
+    const isPasswordValid = await bcrypt.compare(
+      password,
+      users[username].password,
+    );
 
-    if (data.success) {
-      console.log("Login successful for user:", username);
-      localStorage.setItem("currentUser", username);
-      window.location.href = "index.html";
+    if (isPasswordValid) {
+      console.log(`Login successful for user: ${username}`);
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          success: true,
+          requirePasswordChange: users[username].requirePasswordChange,
+        }),
+      };
     } else {
-      console.warn("Login failed. Reason:", data.message);
-      alert(data.message || "Invalid username or password");
+      console.log(`Invalid password for user: ${username}`);
+      return {
+        statusCode: 401,
+        body: JSON.stringify({
+          success: false,
+          message: "Invalid username or password",
+        }),
+      };
     }
   } catch (error) {
     console.error("Login error:", error);
-    alert("An error occurred during login. Please try again.");
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        success: false,
+        message: "An error occurred during login",
+      }),
+    };
   }
-}
-document
-  .getElementById("loginForm")
-  .addEventListener("submit", async function (e) {
-    e.preventDefault();
-    const username = document.getElementById("username").value;
-    const password = document.getElementById("password").value;
-
-    try {
-      const response = await fetch("http://localhost:3000/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ username, password }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        window.location.href = "index.html";
-      } else {
-        alert("Invalid username or password");
-      }
-    } catch (error) {
-      console.error("Login error:", error);
-      alert("An error occurred during login");
-    }
-  });
+};
