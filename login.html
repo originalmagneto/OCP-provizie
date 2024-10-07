@@ -115,14 +115,19 @@
                 const password = document.getElementById("password").value;
 
                 try {
-                    const response = await fetch(
-                        "/.netlify/functions/api/login",
-                        {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ username, password }),
-                        },
+                    // Test function call
+                    const testResponse = await fetch(
+                        "/.netlify/functions/test",
                     );
+                    const testData = await testResponse.json();
+                    console.log("Test function response:", testData);
+
+                    // Updated login function URL
+                    const response = await fetch("/.netlify/functions/login", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ username, password }),
+                    });
 
                     const data = await response.json();
 
