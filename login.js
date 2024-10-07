@@ -1,4 +1,5 @@
 const config = {
+  API_BASE_URL: "https://your-site-name.netlify.app", // Replace with your actual Netlify site URL
   API_BASE_URL: "https://ocp-provizie.netlify.app", // Update this with your actual API URL
 };
 
@@ -26,13 +27,16 @@ document.addEventListener("DOMContentLoaded", function () {
     console.log(`Login attempt for user: ${username}`);
 
     try {
-      const response = await fetch(`${config.API_BASE_URL}/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        `${config.API_BASE_URL}/.netlify/functions/login`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ username, password }),
         },
-        body: JSON.stringify({ username, password }),
-      });
+      );
 
       console.log("Response status:", response.status);
 
