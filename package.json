@@ -2,6 +2,7 @@
   "name": "ocp-provizie",
   "version": "1.0.0",
   "scripts": {
+    "build": "npm install && cp index.html login.html login.js ."
     "build": "npm install"
   },
   "dependencies": {
