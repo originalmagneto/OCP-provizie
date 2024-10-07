@@ -2,15 +2,8 @@
   command = "npm run build"
   publish = "."
   functions = "netlify/functions"
-  publish = "."
-command = "npm run build"
-publish = "public"
-functions = "netlify/functions"
 
 [[redirects]]
-from = "/*"
-to = "/index.html"
-status = 200
-
-[build.environment]
-NODE_VERSION = "14"
+  from = "/*"
+  to = "/index.html"
+  status = 200
